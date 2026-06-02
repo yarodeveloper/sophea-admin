@@ -1,0 +1,34 @@
+<?php
+/**
+ * SOPHEA - Database Configuration
+ * 
+ * Database connection settings and credentials
+ * 
+ * INSTRUCCIONES:
+ * 1. Copia este archivo como config_db.php
+ * 2. Completa las credenciales de tu base de datos de producción
+ * 3. Las credenciales las encuentras en tu panel de hosting (cPanel, Plesk, etc.)
+ */
+
+// Database Configuration
+// ⚠️ IMPORTANTE: Cambia estos valores con los de tu hosting
+define('DB_HOST', 'localhost');  // Generalmente 'localhost', pero puede ser una IP o dominio
+define('DB_NAME', 'sophea_db');
+define('DB_USER', 'sopheadmin');     // Database user
+define('DB_PASS', 'z*B4D5N#k59CIbs!'); // Database password
+define('DB_CHARSET', 'utf8mb4');
+
+// Email Configuration
+define('ADMIN_EMAIL', 'admin@sophea.com.mx');  // Email para recibir notificaciones
+define('FROM_EMAIL', 'noreply@sophea.com.mx'); // Email remitente
+define('FROM_NAME', 'SOPHEA - Sistema de Contacto');
+
+// Form Settings
+define('ENABLE_EMAIL_NOTIFICATIONS', true);
+define('ENABLE_DATABASE_STORAGE', true);
+define('ENABLE_WHATSAPP_REDIRECT', true);
+
+// Security Settings
+define('ENABLE_CSRF_PROTECTION', true);
+define('SESSION_TIMEOUT', 3600); // 1 hour in seconds
+

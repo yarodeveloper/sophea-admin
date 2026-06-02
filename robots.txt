@@ -1,0 +1,32 @@
+# SOPHEA - Robots.txt
+# Instructions for search engine crawlers
+
+User-agent: *
+Allow: /
+
+# Disallow admin and private areas
+Disallow: /admin.php
+Disallow: /admin_blog.php
+Disallow: /admin_banner.php
+Disallow: /admin_whatsapp_config.php
+Disallow: /config.php
+Disallow: /config_db.php
+Disallow: /uploads/
+Disallow: /classes/
+Disallow: /database/
+Disallow: /test_*.php
+Disallow: /check_*.php
+Disallow: /verify_*.php
+Disallow: /create_*.php
+Disallow: /import_*.php
+Disallow: /execute_*.php
+Disallow: /process_form.php
+Disallow: /send_whatsapp.php
+Disallow: /webhook_whatsapp.php
+
+# Allow sitemap (update with your actual domain)
+Sitemap: https://sopheamkt.com/sitemap.xml
+# For local development, use: Sitemap: http://localhost/sopheaadmin/sitemap.xml
+
+# Crawl-delay (optional - adjust if needed)
+# Crawl-delay: 1
