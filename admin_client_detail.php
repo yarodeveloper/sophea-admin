@@ -5182,6 +5182,19 @@ function openEditServiceModal(service) {
     modal.classList.remove('hidden');
 }
 
+function closeEditServiceModal() {
+    const modal = document.getElementById('editServiceModal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+document.getElementById('editServiceModal')?.addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeEditServiceModal();
+    }
+});
+
 function openConvertQuoteModal(quoteId, quoteNumber, hasAds) {
     document.getElementById('convertQuoteId').value = quoteId;
     document.getElementById('convertQuoteNumber').textContent = quoteNumber;

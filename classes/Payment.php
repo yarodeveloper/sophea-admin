@@ -657,15 +657,10 @@ class Payment {
                     FROM payments p
                     LEFT JOIN services s ON p.service_id = s.id
                     WHERE p.status IN ('pending', 'overdue')
-                    AND MONTH(p.payment_date) = :month 
-                    AND YEAR(p.payment_date) = :year
                     AND (p.service_id IS NULL OR s.status NOT IN ('completed', 'cancelled', 'finished'))";
             
             $stmt = $this->db->prepare($sql);
-            $stmt->execute([
-                ':month' => $month,
-                ':year' => $year
-            ]);
+            $stmt->execute();
             
             $result = $stmt->fetch();
             return $result['total'] ?? 0;
