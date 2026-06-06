@@ -48,7 +48,7 @@ try {
     
     // 2. Financial Metrics for Selected Month
     $monthlyRevenue = $payment->getMonthlyRevenue($selectedYear, $selectedMonth);
-    $monthlyExpectedIncome = $service->getTotalExpectedIncome();
+    $monthlyExpectedIncome = $payment->getExpectedIncome($selectedYear, $selectedMonth);
     $monthlyActualExpenses = $expense->getMonthlyExpenses($selectedYear, $selectedMonth);
     $monthlyGoal = 35000;
     
@@ -273,6 +273,119 @@ function renewService(serviceId, clientName) {
     if (confirm(`¿Deseas renovar el servicio para ${clientName}?`)) {
         window.location.href = `api_service_renewal.php?id=${serviceId}`;
     }
+}
+</script>
+
+<!-- Dashboard Detail Modal -->
+<div id="dashboardDetailModal" class="fixed inset-0 z-50 hidden bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-card-dark w-full max-w-3xl rounded-2xl shadow-xl flex flex-col max-h-[90vh]">
+        <!-- Header -->
+        <div class="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-800">
+            <h3 id="dashboardDetailModalTitle" class="text-xl font-bold text-slate-900 dark:text-white">Detalles</h3>
+            <button onclick="closeDashboardDetailModal()" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <!-- Body -->
+        <div class="p-6 overflow-y-auto custom-scrollbar flex-1">
+            <div id="dashboardDetailLoading" class="flex justify-center items-center py-10">
+                <span class="material-symbols-outlined animate-spin text-4xl text-primary">progress_activity</span>
+            </div>
+            <div id="dashboardDetailContent" class="hidden">
+                <table class="w-full text-left border-collapse">
+                    <thead id="dashboardDetailThead" class="bg-slate-50 dark:bg-slate-800/50">
+                        <!-- headers injected via JS -->
+                    </thead>
+                    <tbody id="dashboardDetailTbody" class="divide-y divide-slate-200 dark:divide-slate-700">
+                        <!-- rows injected via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- Footer -->
+        <div class="p-4 border-t border-slate-200 dark:border-slate-800 flex justify-end">
+            <button onclick="closeDashboardDetailModal()" class="px-5 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg font-medium hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">
+                Cerrar
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+function openDashboardDetailModal(type) {
+    const modal = document.getElementById('dashboardDetailModal');
+    const title = document.getElementById('dashboardDetailModalTitle');
+    const loading = document.getElementById('dashboardDetailLoading');
+    const content = document.getElementById('dashboardDetailContent');
+    const thead = document.getElementById('dashboardDetailThead');
+    const tbody = document.getElementById('dashboardDetailTbody');
+
+    modal.classList.remove('hidden');
+    loading.classList.remove('hidden');
+    content.classList.add('hidden');
+    tbody.innerHTML = '';
+    thead.innerHTML = '';
+
+    const titles = {
+        'paid_income': 'Ingresos Cobrados este Mes',
+        'pending_income': 'Pagos Pendientes del Mes',
+        'expenses': 'Gastos del Mes'
+    };
+    title.innerText = titles[type] || 'Detalles';
+
+    const month = <?php echo $selectedMonth; ?>;
+    const year = <?php echo $selectedYear; ?>;
+
+    fetch(`api_dashboard_details.php?type=${type}&month=${month}&year=${year}`)
+        .then(res => res.json())
+        .then(res => {
+            loading.classList.add('hidden');
+            content.classList.remove('hidden');
+
+            if (res.success && res.data.length > 0) {
+                // Build headers
+                thead.innerHTML = `
+                    <tr>
+                        <th class="px-4 py-3 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Cliente/Entidad</th>
+                        <th class="px-4 py-3 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Servicio/Concepto</th>
+                        <th class="px-4 py-3 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Monto</th>
+                        <th class="px-4 py-3 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right">Acción</th>
+                    </tr>
+                `;
+
+                res.data.forEach(item => {
+                    const clientName = item.company_name || 'Desconocido';
+                    const serviceName = item.service_name || '-';
+                    const amount = parseFloat(item.amount).toLocaleString('es-MX', {style: 'currency', currency: 'MXN'});
+                    
+                    let linkHtml = '';
+                    if (item.client_id) {
+                        linkHtml = `<a href="admin_client_detail.php?id=${item.client_id}" class="text-primary hover:underline font-medium text-sm inline-flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">visibility</span> Ver</a>`;
+                    }
+
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                            <td class="px-4 py-3 text-sm text-slate-900 dark:text-white font-medium">${clientName}</td>
+                            <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">${serviceName}</td>
+                            <td class="px-4 py-3 text-sm font-bold text-slate-900 dark:text-white text-green-600">${amount}</td>
+                            <td class="px-4 py-3 text-right">${linkHtml}</td>
+                        </tr>
+                    `;
+                });
+            } else {
+                tbody.innerHTML = `<tr><td colspan="4" class="px-4 py-8 text-center text-slate-500">No hay registros para mostrar.</td></tr>`;
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            loading.classList.add('hidden');
+            content.classList.remove('hidden');
+            tbody.innerHTML = `<tr><td colspan="4" class="px-4 py-8 text-center text-red-500">Ocurrió un error al cargar los datos.</td></tr>`;
+        });
+}
+
+function closeDashboardDetailModal() {
+    document.getElementById('dashboardDetailModal').classList.add('hidden');
 }
 </script>
 

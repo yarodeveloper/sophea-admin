@@ -646,9 +646,9 @@ class Payment {
     }
     
     /**
-     * Get estimated expenses for a month (pending payments)
+     * Get expected income for a month (pending payments)
      */
-    public function getMonthlyEstimatedExpenses($year = null, $month = null) {
+    public function getExpectedIncome($year = null, $month = null) {
         try {
             if (!$year) $year = date('Y');
             if (!$month) $month = date('m');

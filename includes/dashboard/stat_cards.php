@@ -7,7 +7,7 @@
 <!-- Main Stats Grid -->
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
     <!-- Stat 1: Ingresos del Mes -->
-    <div class="bg-white dark:bg-card-dark p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col gap-3">
+    <div onclick="openDashboardDetailModal('paid_income')" class="bg-white dark:bg-card-dark p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col gap-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
         <div class="flex items-center justify-between">
             <p class="text-slate-500 dark:text-slate-400 font-medium text-sm">Ingresos del Mes</p>
             <span class="material-symbols-outlined text-green-600 bg-green-100 dark:bg-green-900/20 p-1.5 rounded-md">payments</span>
@@ -21,7 +21,7 @@
     </div>
     
     <!-- Stat 2: Ingresos Esperados -->
-    <div class="bg-white dark:bg-card-dark p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col gap-3">
+    <div onclick="openDashboardDetailModal('pending_income')" class="bg-white dark:bg-card-dark p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col gap-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
         <div class="flex items-center justify-between">
             <p class="text-slate-500 dark:text-slate-400 font-medium text-sm">Ingresos Esperados</p>
             <span class="material-symbols-outlined text-blue-600 bg-blue-100 dark:bg-blue-900/20 p-1.5 rounded-md">account_balance</span>
@@ -30,12 +30,12 @@
             <p class="text-3xl font-bold text-slate-900 dark:text-white">$<?php echo number_format($monthlyExpectedIncome, 0); ?></p>
         </div>
         <div class="text-xs text-slate-500 dark:text-slate-400">
-            Servicios activos
+            Pagos pendientes del mes
         </div>
     </div>
     
     <!-- Stat 3: Gastos del Mes -->
-    <div class="bg-white dark:bg-card-dark p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col gap-3">
+    <div onclick="openDashboardDetailModal('expenses')" class="bg-white dark:bg-card-dark p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col gap-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
         <div class="flex items-center justify-between">
             <p class="text-slate-500 dark:text-slate-400 font-medium text-sm">Gastos del Mes</p>
             <span class="material-symbols-outlined text-orange-600 bg-orange-100 dark:bg-orange-900/20 p-1.5 rounded-md">receipt_long</span>
