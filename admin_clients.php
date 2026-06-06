@@ -474,20 +474,12 @@ include 'includes/admin_header.php';
                                                 $completedWithDebtCount = intval($c['completed_with_debt_count'] ?? 0);
                                                 $hasAnyIcon = false;
                                                 
-                                                if ($overdueCount > 0): $hasAnyIcon = true; ?>
-                                                    <div class="flex flex-col items-center gap-0.5" title="<?php echo $overdueCount; ?> servicio(s) vencidos">
-                                                        <span class="material-symbols-outlined text-red-500 dark:text-red-400 text-2xl animate-pulse" style="font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;">
-                                                            warning
+                                                if ($activeCount > 0): $hasAnyIcon = true; ?>
+                                                    <div class="flex flex-col items-center gap-0.5" title="<?php echo $activeCount; ?> servicio(s) activo(s)">
+                                                        <span class="material-symbols-outlined text-green-500 dark:text-green-400 text-2xl" style="font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;">
+                                                            check_circle
                                                         </span>
-                                                        <span class="text-[10px] text-red-600 dark:text-red-400 font-black uppercase leading-none">Vencido</span>
-                                                    </div>
-                                                <?php endif; 
-                                                if ($expiringCount > 0): $hasAnyIcon = true; ?>
-                                                    <div class="flex flex-col items-center gap-0.5" title="<?php echo $expiringCount; ?> servicio(s) por vencer próximamente">
-                                                        <span class="material-symbols-outlined text-amber-500 dark:text-amber-400 text-2xl" style="font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;">
-                                                            notifications_active
-                                                        </span>
-                                                        <span class="text-[10px] text-amber-600 dark:text-amber-400 font-black uppercase leading-none">Renovar</span>
+                                                        <span class="text-[10px] text-green-600 dark:text-green-400 font-black uppercase leading-none mt-1">Activo</span>
                                                     </div>
                                                 <?php endif; 
                                                 if ($completedWithDebtCount > 0): $hasAnyIcon = true; ?>
@@ -498,12 +490,20 @@ include 'includes/admin_header.php';
                                                         <span class="text-[10px] text-purple-600 dark:text-purple-400 font-black uppercase leading-none mt-1">Por Cobrar</span>
                                                     </div>
                                                 <?php endif; 
-                                                if ($activeCount > 0): $hasAnyIcon = true; ?>
-                                                    <div class="flex flex-col items-center gap-0.5" title="<?php echo $activeCount; ?> servicio(s) activo(s)">
-                                                        <span class="material-symbols-outlined text-green-500 dark:text-green-400 text-2xl" style="font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;">
-                                                            check_circle
+                                                if ($expiringCount > 0): $hasAnyIcon = true; ?>
+                                                    <div class="flex flex-col items-center gap-0.5" title="<?php echo $expiringCount; ?> servicio(s) por vencer próximamente">
+                                                        <span class="material-symbols-outlined text-amber-500 dark:text-amber-400 text-2xl" style="font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;">
+                                                            notifications_active
                                                         </span>
-                                                        <span class="text-[10px] text-green-600 dark:text-green-400 font-black uppercase leading-none">Activo</span>
+                                                        <span class="text-[10px] text-amber-600 dark:text-amber-400 font-black uppercase leading-none mt-1">Renovar</span>
+                                                    </div>
+                                                <?php endif; 
+                                                if ($overdueCount > 0): $hasAnyIcon = true; ?>
+                                                    <div class="flex flex-col items-center gap-0.5" title="<?php echo $overdueCount; ?> servicio(s) vencidos">
+                                                        <span class="material-symbols-outlined text-red-500 dark:text-red-400 text-2xl animate-pulse" style="font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;">
+                                                            warning
+                                                        </span>
+                                                        <span class="text-[10px] text-red-600 dark:text-red-400 font-black uppercase leading-none mt-1">Vencido</span>
                                                     </div>
                                                 <?php endif; 
                                                 if (!$hasAnyIcon): ?>

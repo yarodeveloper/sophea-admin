@@ -391,8 +391,8 @@ class Client {
                      AND s.end_date < CURDATE()) as overdue_services_count,
                     (SELECT COUNT(*) FROM services s 
                      WHERE s.client_id = c.id 
-                     AND s.status = 'completed'
-                     AND EXISTS (SELECT 1 FROM payments p WHERE p.service_id = s.id AND p.status IN ('pending', 'overdue'))) as completed_with_debt_count
+                     AND (s.status = 'completed' OR s.progress_percentage = 100)
+                     AND s.monthly_fee > COALESCE((SELECT SUM(amount) FROM payments p WHERE p.service_id = s.id AND p.status = 'paid'), 0)) as completed_with_debt_count
                     FROM clients c WHERE 1=1";
             $params = [];
             
