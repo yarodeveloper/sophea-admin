@@ -35,6 +35,9 @@ try {
 
     } elseif ($type === 'pending_income') {
         // Ingresos esperados (status in pending/overdue, due_date en el mes/año)
+        $results = [];
+        
+        // 1. Pagos pendientes reales
         $sql = "SELECT p.id, p.amount, p.status, p.payment_date as date, p.invoice_number, 
                        c.company_name, c.id as client_id, s.service_name
                 FROM payments p
@@ -45,7 +48,41 @@ try {
                 ORDER BY p.payment_date ASC";
         $stmt = $db->prepare($sql);
         $stmt->execute();
-        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $realPayments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        foreach ($realPayments as $rp) {
+            $results[] = $rp;
+        }
+        
+        // 2. Saldos pendientes (Servicios activos donde tarifa > pagado + pendiente)
+        $sql2 = "SELECT s.id as service_id, s.service_name, s.monthly_fee,
+                        c.company_name, c.id as client_id,
+                        COALESCE(SUM(CASE WHEN p.status = 'paid' THEN p.amount ELSE 0 END), 0) as total_paid,
+                        COALESCE(SUM(CASE WHEN p.status IN ('pending', 'overdue') THEN p.amount ELSE 0 END), 0) as total_pending
+                 FROM services s
+                 LEFT JOIN clients c ON s.client_id = c.id
+                 LEFT JOIN payments p ON s.id = p.service_id
+                 WHERE s.status NOT IN ('completed', 'cancelled', 'finished')
+                 GROUP BY s.id, s.service_name, s.monthly_fee, c.company_name, c.id";
+        $stmt2 = $db->prepare($sql2);
+        $stmt2->execute();
+        $services = $stmt2->fetchAll(PDO::FETCH_ASSOC);
+        
+        foreach ($services as $svc) {
+            $pendingBalance = floatval($svc['monthly_fee']) - floatval($svc['total_paid']) - floatval($svc['total_pending']);
+            if ($pendingBalance > 0) {
+                $results[] = [
+                    'id' => null,
+                    'amount' => $pendingBalance,
+                    'status' => 'pending',
+                    'date' => null,
+                    'invoice_number' => null,
+                    'company_name' => $svc['company_name'] ?? 'Desconocido',
+                    'client_id' => $svc['client_id'],
+                    'service_name' => ($svc['service_name'] ?? 'Servicio') . ' (Saldo Pendiente sin registrar)'
+                ];
+            }
+        }
 
     } elseif ($type === 'expenses') {
         // Gastos pagados en el mes (status = paid, payment_date en el mes/año)

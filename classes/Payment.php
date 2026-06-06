@@ -653,17 +653,32 @@ class Payment {
             if (!$year) $year = date('Y');
             if (!$month) $month = date('m');
             
-            $sql = "SELECT COALESCE(SUM(p.amount), 0) as total 
-                    FROM payments p
-                    LEFT JOIN services s ON p.service_id = s.id
-                    WHERE p.status IN ('pending', 'overdue')
-                    AND (p.service_id IS NULL OR s.status NOT IN ('completed', 'cancelled', 'finished'))";
+            // Pagos pendientes sin servicio
+            $sql1 = "SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE status IN ('pending', 'overdue') AND service_id IS NULL";
+            $stmt1 = $this->db->prepare($sql1);
+            $stmt1->execute();
+            $noServicePending = floatval($stmt1->fetch()['total'] ?? 0);
             
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute();
+            // Para cada servicio activo: Max(Pagos Pendientes, Tarifa - Pagos Recibidos)
+            $sql2 = "SELECT s.monthly_fee,
+                            COALESCE(SUM(CASE WHEN p.status = 'paid' THEN p.amount ELSE 0 END), 0) as total_paid,
+                            COALESCE(SUM(CASE WHEN p.status IN ('pending', 'overdue') THEN p.amount ELSE 0 END), 0) as total_pending
+                     FROM services s
+                     LEFT JOIN payments p ON s.id = p.service_id
+                     WHERE s.status NOT IN ('completed', 'cancelled', 'finished')
+                     GROUP BY s.id, s.monthly_fee";
+            $stmt2 = $this->db->prepare($sql2);
+            $stmt2->execute();
+            $services = $stmt2->fetchAll(PDO::FETCH_ASSOC);
             
-            $result = $stmt->fetch();
-            return $result['total'] ?? 0;
+            $servicesPending = 0;
+            foreach ($services as $svc) {
+                // El ingreso esperado de este servicio es al menos lo que ya está en pagos pendientes,
+                // o si la tarifa menos lo pagado es mayor, entonces eso es lo que realmente se debe.
+                $servicesPending += max(floatval($svc['total_pending']), floatval($svc['monthly_fee']) - floatval($svc['total_paid']));
+            }
+            
+            return $noServicePending + $servicesPending;
             
         } catch (PDOException $e) {
             error_log("Error calculating monthly estimated expenses: " . $e->getMessage());
