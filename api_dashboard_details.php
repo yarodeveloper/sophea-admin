@@ -35,14 +35,15 @@ try {
 
     } elseif ($type === 'pending_income') {
         // Ingresos esperados (status in pending/overdue, due_date en el mes/año)
-        $sql = "SELECT p.id, p.amount, p.status, p.due_date as date, p.invoice_number, 
+        $sql = "SELECT p.id, p.amount, p.status, p.payment_date as date, p.invoice_number, 
                        c.company_name, c.id as client_id, s.service_name
                 FROM payments p
                 LEFT JOIN clients c ON p.client_id = c.id
                 LEFT JOIN services s ON p.service_id = s.id
                 WHERE p.status IN ('pending', 'overdue')
-                AND MONTH(p.due_date) = :month AND YEAR(p.due_date) = :year
-                ORDER BY p.due_date ASC";
+                AND MONTH(p.payment_date) = :month AND YEAR(p.payment_date) = :year
+                AND (p.service_id IS NULL OR s.status NOT IN ('completed', 'cancelled', 'finished'))
+                ORDER BY p.payment_date ASC";
         $stmt = $db->prepare($sql);
         $stmt->execute([':month' => $month, ':year' => $year]);
         $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
