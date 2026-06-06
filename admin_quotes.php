@@ -52,6 +52,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             'description'  => $item['description'],
                             'quantity'     => floatval($item['quantity'] ?? 1),
                             'unit_price'   => floatval($item['unit_price'])
+                        ];
+                    }
+                }
+            }
+            
+            $quoteData = [
                 'client_id' => intval($_POST['client_id']),
                 'title' => $_POST['title'],
                 'description' => $_POST['description'] ?? null,
@@ -94,6 +100,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             'description'  => $item['description'],
                             'quantity'     => floatval($item['quantity'] ?? 1),
                             'unit_price'   => floatval($item['unit_price'])
+                        ];
+                    }
+                }
+            }
+            
+            $quoteData = [
                 'client_id' => isset($_POST['client_id']) ? intval($_POST['client_id']) : ($existingQuote['client_id'] ?? 0),
                 'title' => $_POST['title'],
                 'description' => $_POST['description'] ?? null,
