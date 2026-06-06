@@ -466,42 +466,47 @@ include 'includes/admin_header.php';
                                 <?php foreach ($clients as $c): ?>
                                     <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                                         <td class="px-6 py-4 whitespace-nowrap text-center">
-                                            <div class="flex flex-col items-center gap-2">
+                                            <div class="flex flex-row flex-wrap items-center justify-center gap-3">
                                                 <?php 
                                                 $overdueCount = intval($c['overdue_services_count'] ?? 0);
                                                 $expiringCount = intval($c['expiring_services_count'] ?? 0);
                                                 $activeCount = intval($c['active_services_count'] ?? 0);
                                                 $completedWithDebtCount = intval($c['completed_with_debt_count'] ?? 0);
+                                                $hasAnyIcon = false;
                                                 
-                                                if ($overdueCount > 0): ?>
+                                                if ($overdueCount > 0): $hasAnyIcon = true; ?>
                                                     <div class="flex flex-col items-center gap-0.5" title="<?php echo $overdueCount; ?> servicio(s) vencidos">
                                                         <span class="material-symbols-outlined text-red-500 dark:text-red-400 text-2xl animate-pulse" style="font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;">
                                                             warning
                                                         </span>
                                                         <span class="text-[10px] text-red-600 dark:text-red-400 font-black uppercase leading-none">Vencido</span>
                                                     </div>
-                                                <?php elseif ($expiringCount > 0): ?>
+                                                <?php endif; 
+                                                if ($expiringCount > 0): $hasAnyIcon = true; ?>
                                                     <div class="flex flex-col items-center gap-0.5" title="<?php echo $expiringCount; ?> servicio(s) por vencer próximamente">
                                                         <span class="material-symbols-outlined text-amber-500 dark:text-amber-400 text-2xl" style="font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;">
                                                             notifications_active
                                                         </span>
                                                         <span class="text-[10px] text-amber-600 dark:text-amber-400 font-black uppercase leading-none">Renovar</span>
                                                     </div>
-                                                <?php elseif ($completedWithDebtCount > 0): ?>
+                                                <?php endif; 
+                                                if ($completedWithDebtCount > 0): $hasAnyIcon = true; ?>
                                                     <div class="flex flex-col items-center gap-0.5" title="<?php echo $completedWithDebtCount; ?> proyecto(s) concluido(s) con pagos pendientes">
                                                         <span class="material-symbols-outlined text-purple-500 dark:text-purple-400 text-2xl" style="font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;">
                                                             price_check
                                                         </span>
                                                         <span class="text-[10px] text-purple-600 dark:text-purple-400 font-black uppercase leading-none mt-1">Por Cobrar</span>
                                                     </div>
-                                                <?php elseif ($activeCount > 0): ?>
+                                                <?php endif; 
+                                                if ($activeCount > 0): $hasAnyIcon = true; ?>
                                                     <div class="flex flex-col items-center gap-0.5" title="<?php echo $activeCount; ?> servicio(s) activo(s)">
                                                         <span class="material-symbols-outlined text-green-500 dark:text-green-400 text-2xl" style="font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;">
                                                             check_circle
                                                         </span>
                                                         <span class="text-[10px] text-green-600 dark:text-green-400 font-black uppercase leading-none">Activo</span>
                                                     </div>
-                                                <?php else: ?>
+                                                <?php endif; 
+                                                if (!$hasAnyIcon): ?>
                                                     <span class="text-slate-300 dark:text-slate-600">-</span>
                                                 <?php endif; ?>
                                             </div>
