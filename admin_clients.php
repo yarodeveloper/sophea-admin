@@ -471,6 +471,7 @@ include 'includes/admin_header.php';
                                                 $overdueCount = intval($c['overdue_services_count'] ?? 0);
                                                 $expiringCount = intval($c['expiring_services_count'] ?? 0);
                                                 $activeCount = intval($c['active_services_count'] ?? 0);
+                                                $completedWithDebtCount = intval($c['completed_with_debt_count'] ?? 0);
                                                 
                                                 if ($overdueCount > 0): ?>
                                                     <div class="flex flex-col items-center gap-0.5" title="<?php echo $overdueCount; ?> servicio(s) vencidos">
@@ -485,6 +486,13 @@ include 'includes/admin_header.php';
                                                             notifications_active
                                                         </span>
                                                         <span class="text-[10px] text-amber-600 dark:text-amber-400 font-black uppercase leading-none">Renovar</span>
+                                                    </div>
+                                                <?php elseif ($completedWithDebtCount > 0): ?>
+                                                    <div class="flex flex-col items-center gap-0.5" title="<?php echo $completedWithDebtCount; ?> proyecto(s) concluido(s) con pagos pendientes">
+                                                        <span class="material-symbols-outlined text-purple-500 dark:text-purple-400 text-2xl" style="font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;">
+                                                            price_check
+                                                        </span>
+                                                        <span class="text-[10px] text-purple-600 dark:text-purple-400 font-black uppercase leading-none mt-1">Por Cobrar</span>
                                                     </div>
                                                 <?php elseif ($activeCount > 0): ?>
                                                     <div class="flex flex-col items-center gap-0.5" title="<?php echo $activeCount; ?> servicio(s) activo(s)">

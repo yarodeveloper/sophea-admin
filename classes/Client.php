@@ -388,7 +388,11 @@ class Client {
                      WHERE s.client_id = c.id 
                      AND s.status = 'active' 
                      AND s.end_date IS NOT NULL 
-                     AND s.end_date < CURDATE()) as overdue_services_count
+                     AND s.end_date < CURDATE()) as overdue_services_count,
+                    (SELECT COUNT(*) FROM services s 
+                     WHERE s.client_id = c.id 
+                     AND s.status = 'completed'
+                     AND EXISTS (SELECT 1 FROM payments p WHERE p.service_id = s.id AND p.status IN ('pending', 'overdue'))) as completed_with_debt_count
                     FROM clients c WHERE 1=1";
             $params = [];
             
