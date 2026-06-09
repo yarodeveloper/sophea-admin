@@ -38,12 +38,12 @@ try {
         $results = [];
         
         // 1. Pagos pendientes reales
-        $sql = "SELECT p.id, p.amount, p.status, p.payment_date as date, p.invoice_number, 
+        $sql = "SELECT p.id, p.pending_amount as amount, p.status, p.payment_date as date, p.invoice_number, 
                        c.company_name, c.id as client_id, s.service_name
                 FROM payments p
                 LEFT JOIN clients c ON p.client_id = c.id
                 LEFT JOIN services s ON p.service_id = s.id
-                WHERE p.status IN ('pending', 'overdue')
+                WHERE p.status IN ('pending', 'overdue', 'partially_paid')
                 AND (p.service_id IS NULL OR s.status NOT IN ('completed', 'cancelled', 'finished'))
                 ORDER BY p.payment_date ASC";
         $stmt = $db->prepare($sql);
@@ -57,11 +57,11 @@ try {
         // 2. Saldos pendientes (Servicios activos donde tarifa > pagado + pendiente)
         $sql2 = "SELECT s.id as service_id, s.service_name, s.monthly_fee,
                         c.company_name, c.id as client_id,
-                        COALESCE(SUM(CASE WHEN p.status = 'paid' THEN p.amount ELSE 0 END), 0) as total_paid,
-                        COALESCE(SUM(CASE WHEN p.status IN ('pending', 'overdue') THEN p.amount ELSE 0 END), 0) as total_pending
+                        COALESCE(SUM(p.paid_amount), 0) as total_paid,
+                        COALESCE(SUM(p.pending_amount), 0) as total_pending
                  FROM services s
                  LEFT JOIN clients c ON s.client_id = c.id
-                 LEFT JOIN payments p ON s.id = p.service_id
+                 LEFT JOIN payments p ON s.id = p.service_id AND p.status != 'cancelled'
                  WHERE s.status NOT IN ('completed', 'cancelled', 'finished')
                  GROUP BY s.id, s.service_name, s.monthly_fee, c.company_name, c.id";
         $stmt2 = $db->prepare($sql2);

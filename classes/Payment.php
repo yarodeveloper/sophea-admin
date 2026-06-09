@@ -622,16 +622,33 @@ class Payment {
             if (!$year) $year = date('Y');
             if (!$month) $month = date('m');
             
-            // Suma de los saldos pendientes de pagos/cargos que vencen en este mes
-            $sql = "SELECT COALESCE(SUM(pending_amount), 0) as total 
-                    FROM payments 
-                    WHERE status IN ('pending', 'overdue', 'partially_paid')
-                    AND MONTH(due_date) = :month AND YEAR(due_date) = :year";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute([':month' => $month, ':year' => $year]);
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            // Pagos pendientes sin servicio
+            $sql1 = "SELECT COALESCE(SUM(pending_amount), 0) as total 
+                     FROM payments 
+                     WHERE status IN ('pending', 'overdue', 'partially_paid') 
+                     AND service_id IS NULL";
+            $stmt1 = $this->db->prepare($sql1);
+            $stmt1->execute();
+            $noServicePending = floatval($stmt1->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
             
-            return floatval($result['total'] ?? 0);
+            // Para cada servicio activo: Max(Pagos Pendientes, Tarifa - Pagos Recibidos)
+            $sql2 = "SELECT s.monthly_fee,
+                            COALESCE(SUM(p.paid_amount), 0) as total_paid,
+                            COALESCE(SUM(p.pending_amount), 0) as total_pending
+                     FROM services s
+                     LEFT JOIN payments p ON s.id = p.service_id
+                     WHERE s.status NOT IN ('completed', 'cancelled', 'finished')
+                     GROUP BY s.id, s.monthly_fee";
+            $stmt2 = $this->db->prepare($sql2);
+            $stmt2->execute();
+            $services = $stmt2->fetchAll(PDO::FETCH_ASSOC);
+            
+            $servicesPending = 0;
+            foreach ($services as $svc) {
+                $servicesPending += max(floatval($svc['total_pending']), floatval($svc['monthly_fee']) - floatval($svc['total_paid']));
+            }
+            
+            return $noServicePending + $servicesPending;
             
         } catch (PDOException $e) {
             error_log("Error calculating Accounts Receivable: " . $e->getMessage());
