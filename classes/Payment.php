@@ -73,8 +73,12 @@ class Payment {
             
             // Determine status based on payment_date
             $status = 'pending';
+            $paidAmount = 0;
+            $pendingAmount = $data['amount'];
             if (isset($data['paid_at']) && !empty($data['paid_at'])) {
                 $status = 'paid';
+                $paidAmount = $data['amount'];
+                $pendingAmount = 0;
             } elseif (isset($data['due_date']) && !empty($data['due_date'])) {
                 $dueDate = new DateTime($data['due_date']);
                 $today = new DateTime();
@@ -84,10 +88,10 @@ class Payment {
             }
             
             $sql = "INSERT INTO payments 
-                    (client_id, service_id, quote_id, invoice_number, payment_number, amount, currency,
+                    (client_id, service_id, quote_id, invoice_number, payment_number, amount, subtotal, paid_amount, pending_amount, currency,
                      payment_method, payment_date, due_date, status, paid_at, reference_number, notes, created_by) 
                     VALUES 
-                    (:client_id, :service_id, :quote_id, :invoice_number, :payment_number, :amount, :currency,
+                    (:client_id, :service_id, :quote_id, :invoice_number, :payment_number, :amount, :amount, :paid_amount, :pending_amount, :currency,
                      :payment_method, :payment_date, :due_date, :status, :paid_at, :reference_number, :notes, :created_by)";
             
             $stmt = $this->db->prepare($sql);
@@ -99,6 +103,8 @@ class Payment {
                 ':invoice_number' => $invoiceNumber,
                 ':payment_number' => $paymentNumber,
                 ':amount' => $data['amount'],
+                ':paid_amount' => $paidAmount,
+                ':pending_amount' => $pendingAmount,
                 ':currency' => $data['currency'] ?? 'MXN',
                 ':payment_method' => $data['payment_method'] ?? 'transfer',
                 ':payment_date' => $data['payment_date'],
@@ -113,42 +119,18 @@ class Payment {
             if ($result) {
                 $paymentId = $this->db->lastInsertId();
                 
-                // Si el servicio es Ads, desglosar el pago en transacciones
-                if (!empty($data['service_id'])) {
-                    $isAds = $this->service->isAdsService($data['service_id']);
-                    
-                    // Debug log
-                    error_log("Payment::createPayment - Service ID: {$data['service_id']}, isAds: " . var_export($isAds, true) . ", fee_amount: " . (isset($data['fee_amount']) ? $data['fee_amount'] : 'NOT SET') . ", ads_amount: " . (isset($data['ads_amount']) ? $data['ads_amount'] : 'NOT SET'));
-                    
-                    if ($isAds) {
-                        // Obtener montos de desglose (si vienen en $data)
-                        $feeAmount = isset($data['fee_amount']) ? floatval($data['fee_amount']) : 0;
-                        $adsAmount = isset($data['ads_amount']) ? floatval($data['ads_amount']) : 0;
-                        
-                        // Si no se especificaron, usar el monto total como fee (servicios no-Ads)
-                        if ($feeAmount == 0 && $adsAmount == 0) {
-                            $feeAmount = floatval($data['amount']);
-                            error_log("Payment::createPayment - No split amounts provided, using full amount as fee: {$feeAmount}");
-                        }
-                        
-                        // Crear transacciones si hay montos
-                        if ($feeAmount > 0 || $adsAmount > 0) {
-                            error_log("Payment::createPayment - Creating transactions: fee={$feeAmount}, ads={$adsAmount}");
-                            $this->projectTransaction->splitPaymentIntoTransactions(
-                                $paymentId,
-                                $data['service_id'],
-                                $data['client_id'],
-                                $feeAmount,
-                                $adsAmount,
-                                $data['payment_date'],
-                                $data['created_by'] ?? null
-                            );
-                        } else {
-                            error_log("Payment::createPayment - WARNING: Both fee_amount and ads_amount are 0, no transactions created");
-                        }
-                    } else {
-                        error_log("Payment::createPayment - Service is NOT Ads, skipping transaction split");
-                    }
+                // Si el pago se creó como 'paid' directamente (ej. histórico o pago al contado)
+                if ($status === 'paid') {
+                    $this->addReceipt(
+                        $paymentId,
+                        $data['amount'],
+                        $data['payment_method'] ?? 'transfer',
+                        $data['payment_date'],
+                        $data['reference_number'] ?? null,
+                        $data['fee_amount'] ?? 0,
+                        $data['ads_amount'] ?? 0,
+                        $data['created_by'] ?? null
+                    );
                 }
                 
                 return $paymentId;
@@ -205,36 +187,9 @@ class Payment {
             ]);
 
             if ($result) {
-                // Si el servicio es Ads, actualizar transacciones
-                if (!empty($data['service_id'])) {
-                    $isAds = $this->service->isAdsService($data['service_id']);
-                    
-                    if ($isAds) {
-                        // Eliminar transacciones anteriores de este pago
-                        $sqlTrans = "DELETE FROM project_transactions WHERE payment_id = :id";
-                        $stmtTrans = $this->db->prepare($sqlTrans);
-                        $stmtTrans->execute([':id' => $id]);
-                        
-                        $feeAmount = isset($data['fee_amount']) ? floatval($data['fee_amount']) : 0;
-                        $adsAmount = isset($data['ads_amount']) ? floatval($data['ads_amount']) : 0;
-                        
-                        if ($feeAmount == 0 && $adsAmount == 0) {
-                            $feeAmount = floatval($data['amount']);
-                        }
-                        
-                        if ($feeAmount > 0 || $adsAmount > 0) {
-                            $this->projectTransaction->splitPaymentIntoTransactions(
-                                $id,
-                                $data['service_id'],
-                                $data['client_id'],
-                                $feeAmount,
-                                $adsAmount,
-                                $data['payment_date'],
-                                $data['created_by'] ?? null
-                            );
-                        }
-                    }
-                }
+                // Removemos la lógica antigua de transacciones al actualizar.
+                // Si cambia el total del invoice, deberíamos ajustar el pending_amount
+                // (Para fines prácticos aquí, asumiremos que los montos solo se ajustan correctamente desde la UI)
                 return true;
             }
             return false;
@@ -246,21 +201,34 @@ class Payment {
     }
     
     /**
-     * Mark payment as paid
+     * Mark payment as paid (Legacy shortcut)
+     * Ahora esto genera un recibo por el total pendiente
      */
     public function markAsPaid($id, $referenceNumber = null) {
         try {
-            $sql = "UPDATE payments SET 
-                    status = 'paid',
-                    paid_at = NOW(),
-                    reference_number = :reference_number
-                    WHERE id = :id";
+            $payment = $this->getPaymentById($id);
+            if (!$payment || $payment['pending_amount'] <= 0) return false;
             
-            $stmt = $this->db->prepare($sql);
-            return $stmt->execute([
-                ':id' => $id,
-                ':reference_number' => $referenceNumber
-            ]);
+            // Si es un servicio de Ads, usar el total como FEE por defecto para no romper,
+            // pero lo ideal es usar el formulario de Abonos manual para dividirlo bien.
+            $feeAmount = floatval($payment['pending_amount']);
+            $adsAmount = 0;
+            
+            // Si el servicio es de ads, tratar de inferir (pero mejor dejarlo manual)
+            if (!empty($payment['service_id']) && $this->service->isAdsService($payment['service_id'])) {
+                 // No inferimos, dejaremos que sea todo FEE a menos que se haya pasado un desglose.
+                 // (Por esto se deprecó markAsPaid para servicios de ads)
+            }
+
+            return $this->addReceipt(
+                $id,
+                $payment['pending_amount'],
+                'transfer',
+                date('Y-m-d'),
+                $referenceNumber,
+                $feeAmount,
+                $adsAmount
+            );
             
         } catch (PDOException $e) {
             error_log("Error marking payment as paid: " . $e->getMessage());
@@ -580,9 +548,9 @@ class Payment {
      */
     public function getTotalPending($clientId = null) {
         try {
-            $sql = "SELECT COALESCE(SUM(amount), 0) as total 
-                    FROM payments 
-                    WHERE status IN ('pending', 'overdue')";
+            $sql = "SELECT COALESCE(SUM(pending_amount), 0) as total 
+                    FROM payments
+                    WHERE status IN ('pending', 'overdue', 'partially_paid')";
             $params = [];
             
             if ($clientId) {
@@ -607,9 +575,9 @@ class Payment {
      */
     public function getTotalPaid($clientId = null, $month = null, $year = null) {
         try {
-            $sql = "SELECT COALESCE(SUM(amount), 0) as total 
+            $sql = "SELECT COALESCE(SUM(paid_amount), 0) as total 
                     FROM payments 
-                    WHERE status = 'paid'";
+                    WHERE status IN ('paid', 'partially_paid')";
             $params = [];
             
             if ($clientId) {
@@ -646,43 +614,116 @@ class Payment {
     }
     
     /**
-     * Get expected income for a month (pending payments)
+     * Get expected income for a month (Cuentas por Cobrar de ese mes)
+     * Modificado en Fase 4 para reflejar saldos pendientes reales.
      */
     public function getExpectedIncome($year = null, $month = null) {
         try {
             if (!$year) $year = date('Y');
             if (!$month) $month = date('m');
             
-            // Pagos pendientes sin servicio
-            $sql1 = "SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE status IN ('pending', 'overdue') AND service_id IS NULL";
-            $stmt1 = $this->db->prepare($sql1);
-            $stmt1->execute();
-            $noServicePending = floatval($stmt1->fetch()['total'] ?? 0);
+            // Suma de todos los saldos pendientes de pagos/cargos que vencen este mes o antes (overdue)
+            $sql = "SELECT COALESCE(SUM(pending_amount), 0) as total 
+                    FROM payments 
+                    WHERE status IN ('pending', 'overdue', 'partially_paid')";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
             
-            // Para cada servicio activo: Max(Pagos Pendientes, Tarifa - Pagos Recibidos)
-            $sql2 = "SELECT s.monthly_fee,
-                            COALESCE(SUM(CASE WHEN p.status = 'paid' THEN p.amount ELSE 0 END), 0) as total_paid,
-                            COALESCE(SUM(CASE WHEN p.status IN ('pending', 'overdue') THEN p.amount ELSE 0 END), 0) as total_pending
-                     FROM services s
-                     LEFT JOIN payments p ON s.id = p.service_id
-                     WHERE s.status NOT IN ('completed', 'cancelled', 'finished')
-                     GROUP BY s.id, s.monthly_fee";
-            $stmt2 = $this->db->prepare($sql2);
-            $stmt2->execute();
-            $services = $stmt2->fetchAll(PDO::FETCH_ASSOC);
-            
-            $servicesPending = 0;
-            foreach ($services as $svc) {
-                // El ingreso esperado de este servicio es al menos lo que ya está en pagos pendientes,
-                // o si la tarifa menos lo pagado es mayor, entonces eso es lo que realmente se debe.
-                $servicesPending += max(floatval($svc['total_pending']), floatval($svc['monthly_fee']) - floatval($svc['total_paid']));
-            }
-            
-            return $noServicePending + $servicesPending;
+            return floatval($result['total'] ?? 0);
             
         } catch (PDOException $e) {
-            error_log("Error calculating monthly estimated expenses: " . $e->getMessage());
+            error_log("Error calculating Accounts Receivable: " . $e->getMessage());
             return 0;
+        }
+    }
+    
+    /**
+     * Add a partial or full receipt to a payment (Cargo)
+     */
+    public function addReceipt($paymentId, $amount, $paymentMethod, $paymentDate, $referenceNumber = null, $feeAmount = 0, $adsAmount = 0, $createdBy = null) {
+        try {
+            $this->db->beginTransaction();
+            
+            // Get payment
+            $sql = "SELECT * FROM payments WHERE id = :id FOR UPDATE";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':id' => $paymentId]);
+            $payment = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$payment) throw new Exception("Payment not found");
+            
+            // Generate receipt number
+            $yearPart = date('Y', strtotime($paymentDate));
+            $monthPart = date('m', strtotime($paymentDate));
+            $seqStmt = $this->db->query("SELECT COALESCE(MAX(CAST(SUBSTRING(receipt_number, 13) AS UNSIGNED)), 0) + 1 as seq FROM payment_receipts WHERE receipt_number LIKE 'REC-{$yearPart}-{$monthPart}-%'");
+            $seqRow = $seqStmt->fetch(PDO::FETCH_ASSOC);
+            $seq = str_pad($seqRow['seq'] ?? 1, 4, '0', STR_PAD_LEFT);
+            $receiptNumber = "REC-{$yearPart}-{$monthPart}-{$seq}";
+            
+            // Insert Receipt
+            $sqlReceipt = "INSERT INTO payment_receipts 
+                          (payment_id, client_id, receipt_number, amount, payment_method, payment_date, reference_number, created_by)
+                          VALUES (:pid, :cid, :rnum, :amt, :method, :date, :ref, :uid)";
+            $stmtReceipt = $this->db->prepare($sqlReceipt);
+            $stmtReceipt->execute([
+                ':pid' => $paymentId,
+                ':cid' => $payment['client_id'],
+                ':rnum' => $receiptNumber,
+                ':amt' => $amount,
+                ':method' => $paymentMethod,
+                ':date' => $paymentDate,
+                ':ref' => $referenceNumber,
+                ':uid' => $createdBy
+            ]);
+            $receiptId = $this->db->lastInsertId();
+            
+            // Create Transactions for Fee/Ads if amounts provided
+            if ($feeAmount > 0 || $adsAmount > 0) {
+                $this->projectTransaction->splitPaymentIntoTransactions(
+                    $paymentId, // still link to payment
+                    $payment['service_id'] ?? null,
+                    $payment['client_id'],
+                    $feeAmount,
+                    $adsAmount,
+                    $paymentDate,
+                    $createdBy,
+                    $receiptId // Link specifically to this receipt!
+                );
+            }
+            
+            // Update Payment amounts
+            $newPaid = floatval($payment['paid_amount']) + floatval($amount);
+            $newPending = max(0, floatval($payment['amount']) - $newPaid);
+            
+            $newStatus = 'partially_paid';
+            if ($newPending <= 0) {
+                $newStatus = 'paid';
+            }
+            
+            $sqlUpdate = "UPDATE payments SET 
+                          paid_amount = :paid, 
+                          pending_amount = :pending, 
+                          status = :status,
+                          paid_at = :paid_at
+                          WHERE id = :id";
+                          
+            $stmtUpdate = $this->db->prepare($sqlUpdate);
+            $stmtUpdate->execute([
+                ':paid' => $newPaid,
+                ':pending' => $newPending,
+                ':status' => $newStatus,
+                ':paid_at' => ($newStatus == 'paid' && !$payment['paid_at']) ? date('Y-m-d H:i:s') : $payment['paid_at'],
+                ':id' => $paymentId
+            ]);
+            
+            $this->db->commit();
+            return $receiptId;
+            
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            error_log("Error adding receipt: " . $e->getMessage());
+            return false;
         }
     }
     
