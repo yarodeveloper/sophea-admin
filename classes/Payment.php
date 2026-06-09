@@ -622,12 +622,13 @@ class Payment {
             if (!$year) $year = date('Y');
             if (!$month) $month = date('m');
             
-            // Suma de todos los saldos pendientes de pagos/cargos que vencen este mes o antes (overdue)
+            // Suma de los saldos pendientes de pagos/cargos que vencen en este mes
             $sql = "SELECT COALESCE(SUM(pending_amount), 0) as total 
                     FROM payments 
-                    WHERE status IN ('pending', 'overdue', 'partially_paid')";
+                    WHERE status IN ('pending', 'overdue', 'partially_paid')
+                    AND MONTH(due_date) = :month AND YEAR(due_date) = :year";
             $stmt = $this->db->prepare($sql);
-            $stmt->execute();
+            $stmt->execute([':month' => $month, ':year' => $year]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
             
             return floatval($result['total'] ?? 0);
