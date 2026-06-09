@@ -169,21 +169,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } else {
                     // Group items by service_type
                     $servicesByType = [];
-                    $serviceTypeLabels = [
-                        'redes_sociales' => 'Redes Sociales',
-                        'community_manager' => 'Community Manager',
-                        'diseno_web' => 'Diseño Web',
-                        'ads' => 'Publicidad Digital',
-                        'branding' => 'Branding',
-                        'chatbot' => 'Chatbot',
-                        'seo' => 'SEO',
-                        'content_marketing' => 'Content Marketing',
-                        'email_marketing' => 'Email Marketing',
-                        'consultoria_legal' => 'Consultoría Legal',
-                        'auditoria_datos' => 'Auditoría de Datos',
-                        'hosting_dominio' => 'Hosting / Dominio',
-                        'otro' => 'Otro'
-                    ];
+                    require_once 'classes/AppConstants.php';
+                    $serviceTypeLabels = AppConstants::getServiceTypes();
                     
                     foreach ($quoteItems as $item) {
                         $serviceType = $item['service_type'] ?? 'otro';
@@ -1148,26 +1135,11 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 let itemCounter = 0;
-const serviceTypes = [
-    'redes_sociales', 'community_manager', 'diseno_web', 'ads', 
-    'branding', 'chatbot', 'seo', 'content_marketing', 
-    'email_marketing', 'consultoria_legal', 'auditoria_datos', 'hosting_dominio', 'otro'
-];
-const serviceTypeLabels = {
-    'redes_sociales': 'Redes Sociales',
-    'community_manager': 'Community Manager',
-    'diseno_web': 'Diseño Web',
-    'ads': 'Publicidad Digital',
-    'branding': 'Branding',
-    'chatbot': 'Chatbot',
-    'seo': 'SEO',
-    'content_marketing': 'Content Marketing',
-    'email_marketing': 'Email Marketing',
-    'consultoria_legal': 'Consultoría Legal',
-    'auditoria_datos': 'Auditoría de Datos',
-    'hosting_dominio': 'Hosting / Dominio',
-    'otro': 'Otro'
-};
+const serviceTypeLabels = <?php 
+    require_once 'classes/AppConstants.php';
+    echo json_encode(AppConstants::getServiceTypes(), JSON_UNESCAPED_UNICODE); 
+?>;
+const serviceTypes = Object.keys(serviceTypeLabels);
 
 // Modal functions
 function openNewQuoteModal(clientId) {

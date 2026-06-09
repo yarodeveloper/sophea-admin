@@ -404,21 +404,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         } else {
                             // Group items by service_type
                             $servicesByType = [];
-                            $serviceTypeLabels = [
-                                'redes_sociales' => 'Redes Sociales',
-                                'community_manager' => 'Community Manager',
-                                'diseno_web' => 'Diseño Web',
-                                'ads' => 'Publicidad Digital',
-                                'branding' => 'Branding',
-                                'chatbot' => 'Chatbot',
-                                'seo' => 'SEO',
-                                'content_marketing' => 'Content Marketing',
-                                'email_marketing' => 'Email Marketing',
-                                'consultoria_legal' => 'Consultoría Legal',
-                                'auditoria_datos' => 'Auditoría de Datos',
-                                'hosting_dominio' => 'Hosting / Dominio',
-                                'otro' => 'Otro'
-                            ];
+                            require_once 'classes/AppConstants.php';
+                            $serviceTypeLabels = AppConstants::getServiceTypes();
                             
                             foreach ($quoteItems as $item) {
                                 $serviceType = $item['service_type'] ?? 'otro';
@@ -2336,12 +2323,9 @@ include 'includes/admin_header.php';
                                                 'overdue' => 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
                                                 'cancelled' => 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
                                             ];
-                                            $statusLabels = [
-                                                'paid' => 'Pagado',
-                                                'pending' => 'Pendiente',
-                                                'overdue' => 'Vencido',
-                                                'cancelled' => 'Cancelado'
-                                            ];
+                                            require_once 'classes/AppConstants.php';
+                                            $statusLabels = AppConstants::getPaymentStatuses();
+
                                             $status = $p['status'] ?? 'pending';
                                             ?>
                                             <span class="px-2 py-0.5 text-xs font-medium rounded <?php echo $statusColors[$status] ?? $statusColors['pending']; ?>">
@@ -2820,19 +2804,13 @@ include 'includes/admin_header.php';
                     <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Tipo de Servicio *</label>
                     <select name="service_type" id="editServiceType" required
                             class="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-card-dark text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary">
-                        <option value="redes_sociales">Redes Sociales</option>
-                        <option value="community_manager">Community Manager</option>
-                        <option value="diseno_web">Diseño Web</option>
-                        <option value="ads">Publicidad (Ads)</option>
-                        <option value="branding">Branding</option>
-                        <option value="chatbot">Chatbot</option>
-                        <option value="seo">SEO</option>
-                        <option value="content_marketing">Content Marketing</option>
-                        <option value="email_marketing">Email Marketing</option>
-                        <option value="consultoria_legal">Consultoría Legal</option>
-                        <option value="auditoria_datos">Auditoría de Datos</option>
-                        <option value="hosting_dominio">Hosting / Dominio</option>
-                        <option value="otro">Otro</option>
+                        <?php 
+                        require_once 'classes/AppConstants.php';
+                        $serviceTypes = AppConstants::getServiceTypes();
+                        foreach ($serviceTypes as $key => $label): 
+                        ?>
+                            <option value="<?php echo htmlspecialchars($key); ?>"><?php echo htmlspecialchars($label); ?></option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
 

@@ -69,36 +69,16 @@ class Expense {
      * Get expense type labels
      */
     public function getExpenseTypeLabels() {
-        return [
-            'hosting' => 'Hosting',
-            'domain' => 'Dominio',
-            'platform' => 'Plataforma',
-            'software' => 'Software',
-            'salary' => 'Sueldo',
-            'freelancer' => 'Freelancer',
-            'marketing' => 'Marketing',
-            'ads_facebook' => 'Facebook Ads',
-            'ads_google' => 'Google Ads',
-            'ads_instagram' => 'Instagram Ads',
-            'ads_tiktok' => 'TikTok Ads',
-            'ads_linkedin' => 'LinkedIn Ads',
-            'ads_other' => 'Otros Ads',
-            'office' => 'Oficina',
-            'utilities' => 'Servicios',
-            'other' => 'Otro'
-        ];
+        require_once 'AppConstants.php';
+        return AppConstants::getExpenseTypes();
     }
     
     /**
      * Get reimbursement status labels
      */
     public function getReimbursementStatusLabels() {
-        return [
-            'not_required' => 'No requerido',
-            'pending' => 'Pendiente',
-            'billed' => 'Facturado',
-            'paid' => 'Pagado'
-        ];
+        require_once 'AppConstants.php';
+        return AppConstants::getReimbursementStatusLabels();
     }
     
     /**
@@ -112,12 +92,8 @@ class Expense {
      * Get billing cycle labels
      */
     public function getBillingCycleLabels() {
-        return [
-            'one_time' => 'Una vez',
-            'monthly' => 'Mensual',
-            'quarterly' => 'Trimestral',
-            'yearly' => 'Anual'
-        ];
+        require_once 'AppConstants.php';
+        return AppConstants::getBillingCycleLabels();
     }
     
     /**

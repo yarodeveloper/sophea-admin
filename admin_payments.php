@@ -769,12 +769,8 @@ include 'includes/admin_header.php';
                                                 'paid' => 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
                                                 'cancelled' => 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
                                             ];
-                                            $statusLabels = [
-                                                'pending' => 'Pendiente',
-                                                'overdue' => 'Vencido',
-                                                'paid' => 'Pagado',
-                                                'cancelled' => 'Cancelado'
-                                            ];
+                                            require_once 'classes/AppConstants.php';
+                                            $statusLabels = AppConstants::getPaymentStatuses();
                                             $payStatus = $pay['status'] ?? 'pending';
                                             ?>
                                             <span class="px-2 py-1 text-xs font-medium rounded-full <?php echo $statusColors[$payStatus] ?? $statusColors['pending']; ?>">

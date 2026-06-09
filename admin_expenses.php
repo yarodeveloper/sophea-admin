@@ -493,12 +493,8 @@ include 'includes/admin_header.php';
                                                     else echo 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
                                                 ?>">
                                                 <?php 
-                                                $statusLabels = [
-                                                    'paid' => 'Pagado',
-                                                    'pending' => 'Pendiente',
-                                                    'overdue' => 'Vencido',
-                                                    'cancelled' => 'Cancelado'
-                                                ];
+                                                require_once 'classes/AppConstants.php';
+                                                $statusLabels = AppConstants::getPaymentStatuses();
                                                 echo htmlspecialchars($statusLabels[$exp['status']] ?? ucfirst($exp['status'])); 
                                                 ?>
                                             </span>
