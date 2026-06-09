@@ -146,20 +146,7 @@ try {
 }
 
 // Include layout header
-include 'includes/admin_header.php';
-include 'includes/admin_sidebar.php';
-?>
-
-<div class="relative flex h-screen w-full overflow-hidden">
-    <!-- Spacer for sidebar on desktop -->
-    <div class="hidden md:block w-64 flex-shrink-0"></div>
-    
-    <!-- Main Content -->
-    <main class="flex-1 overflow-y-auto custom-scrollbar bg-background-light dark:bg-background-dark p-6 lg:p-10">
-        <!-- Mobile Menu Button -->
-        <button id="sidebar-toggle-btn" class="md:hidden fixed top-4 left-4 z-30 p-3 bg-white dark:bg-card-dark rounded-lg shadow-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-            <span class="material-symbols-outlined text-2xl">menu</span>
-        </button>
+<?php include 'includes/layout_start.php'; ?>
         
         <div class="mx-auto max-w-[1200px] flex flex-col gap-6 mt-16 md:mt-0">
             <!-- 1. Header & Filters -->
@@ -230,8 +217,7 @@ include 'includes/admin_sidebar.php';
                 </div>
             </div>
         </div>
-    </main>
-</div>
+
 
 <!-- Scripts Section -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -389,4 +375,4 @@ function closeDashboardDetailModal() {
 }
 </script>
 
-<?php include 'footer.php'; ?>
+<?php include 'includes/layout_end.php'; ?>

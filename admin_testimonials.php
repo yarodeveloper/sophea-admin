@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // Use authentication helper
 require_once 'admin_auth_helper.php';
 $GLOBALS['admin_page_title'] = 'Admin Testimonios - SOPHEA';
@@ -795,8 +795,4 @@ include 'includes/admin_header.php';
         }
     </script>
             </div>
-        </div>
-    </main>
-</div>
-
-<?php include 'includes/admin_footer.php'; ?>
+<?php include 'includes/layout_end.php'; ?>
