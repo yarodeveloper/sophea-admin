@@ -30,11 +30,11 @@ class ProjectTransaction {
         try {
             $sql = "INSERT INTO project_transactions 
                     (service_id, client_id, transaction_type, amount, currency, description,
-                     payment_id, platform, billing_period_start, billing_period_end,
+                     payment_id, receipt_id, platform, billing_period_start, billing_period_end,
                      transaction_date, reference_number, notes, created_by) 
                     VALUES 
                     (:service_id, :client_id, :transaction_type, :amount, :currency, :description,
-                     :payment_id, :platform, :billing_period_start, :billing_period_end,
+                     :payment_id, :receipt_id, :platform, :billing_period_start, :billing_period_end,
                      :transaction_date, :reference_number, :notes, :created_by)";
             
             $stmt = $this->db->prepare($sql);
@@ -47,6 +47,7 @@ class ProjectTransaction {
                 ':currency' => $data['currency'] ?? 'MXN',
                 ':description' => $data['description'] ?? null,
                 ':payment_id' => $data['payment_id'] ?? null,
+                ':receipt_id' => $data['receipt_id'] ?? null,
                 ':platform' => $data['platform'] ?? null,
                 ':billing_period_start' => $data['billing_period_start'] ?? null,
                 ':billing_period_end' => $data['billing_period_end'] ?? null,
@@ -81,7 +82,7 @@ class ProjectTransaction {
     /**
      * Split payment into transactions (fee + ads investment)
      */
-    public function splitPaymentIntoTransactions($paymentId, $serviceId, $clientId, $feeAmount, $adsAmount, $paymentDate, $createdBy = null) {
+    public function splitPaymentIntoTransactions($paymentId, $serviceId, $clientId, $feeAmount, $adsAmount, $paymentDate, $createdBy = null, $receiptId = null) {
         try {
             $this->db->beginTransaction();
             
@@ -97,6 +98,7 @@ class ProjectTransaction {
                     'currency' => 'MXN',
                     'description' => 'Honorarios de gestión',
                     'payment_id' => $paymentId,
+                    'receipt_id' => $receiptId,
                     'transaction_date' => $paymentDate,
                     'created_by' => $createdBy
                 ]);
@@ -118,6 +120,7 @@ class ProjectTransaction {
                     'currency' => 'MXN',
                     'description' => 'Fondo para inversión publicitaria',
                     'payment_id' => $paymentId,
+                    'receipt_id' => $receiptId,
                     'transaction_date' => $paymentDate,
                     'created_by' => $createdBy
                 ]);

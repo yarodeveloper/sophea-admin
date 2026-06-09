@@ -133,12 +133,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         
-        // Mark as paid
-        elseif ($action === 'mark_as_paid' && $payment) {
+        // Add Receipt (Abono)
+        elseif ($action === 'add_receipt' && $payment) {
             $paymentId = intval($_POST['payment_id']);
+            $amount = floatval($_POST['receipt_amount']);
             $referenceNumber = !empty($_POST['reference_number']) ? $_POST['reference_number'] : null;
+            $paymentMethod = $_POST['payment_method'] ?? 'transfer';
+            $paymentDate = $_POST['payment_date'] ?? date('Y-m-d');
             
-            $result = $payment->markAsPaid($paymentId, $referenceNumber);
+            $feeAmount = isset($_POST['fee_amount']) ? floatval($_POST['fee_amount']) : 0;
+            $adsAmount = isset($_POST['ads_amount']) ? floatval($_POST['ads_amount']) : 0;
+            
+            $result = $payment->addReceipt($paymentId, $amount, $paymentMethod, $paymentDate, $referenceNumber, $feeAmount, $adsAmount, $currentUser['id']);
             
             if ($result) {
                 // Check if service is now completed
@@ -159,7 +165,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             foreach($payments as $p) {
                                 if ($p['status'] == 'paid') {
                                     $totalPaid += floatval($p['amount']);
-                                } else if ($p['status'] == 'pending' || $p['status'] == 'overdue') {
+                                } else if ($p['status'] == 'pending' || $p['status'] == 'overdue' || $p['status'] == 'partially_paid') {
                                     $hasPending = true;
                                 }
                             }
@@ -172,13 +178,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
                     }
                 } catch (Exception $e) {
-                    error_log("Error checking service completion after mark_as_paid: " . $e->getMessage());
+                    error_log("Error checking service completion after add_receipt: " . $e->getMessage());
                 }
                 
-                $message = 'Pago marcado como recibido';
+                $message = 'Abono registrado exitosamente';
                 $messageType = 'success';
             } else {
-                $message = 'Error al marcar el pago';
+                $message = 'Error al registrar el abono';
                 $messageType = 'error';
             }
         }
@@ -641,6 +647,7 @@ include 'includes/admin_header.php';
                                     class="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-card-dark text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary">
                                 <option value="">Todos los estados</option>
                                 <option value="pending" <?php echo $statusFilter === 'pending' ? 'selected' : ''; ?>>Pendiente</option>
+                                <option value="partially_paid" <?php echo $statusFilter === 'partially_paid' ? 'selected' : ''; ?>>Pago Parcial</option>
                                 <option value="paid" <?php echo $statusFilter === 'paid' ? 'selected' : ''; ?>>Pagado</option>
                                 <option value="overdue" <?php echo $statusFilter === 'overdue' ? 'selected' : ''; ?>>Vencido</option>
                                 <option value="cancelled" <?php echo $statusFilter === 'cancelled' ? 'selected' : ''; ?>>Cancelado</option>
@@ -691,9 +698,8 @@ include 'includes/admin_header.php';
                                 <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Factura</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Cliente</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Servicio</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Monto</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Fecha Pago</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Vencimiento</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Montos</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Fecha</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Estado</th>
                                 <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Acciones</th>
                             </tr>
@@ -731,34 +737,36 @@ include 'includes/admin_header.php';
                                             </div>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="text-sm font-medium text-slate-900 dark:text-white">
+                                            <div class="text-sm font-bold text-slate-900 dark:text-white">
                                                 $<?php echo number_format($pay['amount'], 2); ?>
+                                            </div>
+                                            <div class="text-xs text-green-600 dark:text-green-400 font-medium mt-1">
+                                                Abonado: $<?php echo number_format($pay['paid_amount'] ?? 0, 2); ?>
+                                            </div>
+                                            <div class="text-xs text-orange-600 dark:text-orange-400 font-medium">
+                                                Pendiente: $<?php echo number_format($pay['pending_amount'] ?? $pay['amount'], 2); ?>
                                             </div>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <div class="text-sm text-slate-600 dark:text-slate-400">
                                                 <?php echo date('d/m/Y', strtotime($pay['payment_date'])); ?>
                                             </div>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
                                             <?php
                                             if ($pay['due_date']) {
                                                 $dueDate = new DateTime($pay['due_date']);
                                                 $now = new DateTime();
                                                 $diff = $now->diff($dueDate);
                                                 
-                                                $dateClass = 'text-slate-600 dark:text-slate-400';
+                                                $dateClass = 'text-slate-500 dark:text-slate-500';
                                                 if ($dueDate < $now && $pay['status'] !== 'paid') {
                                                     $dateClass = 'text-red-600 dark:text-red-400 font-semibold';
                                                 } elseif ($diff->days <= 7 && $pay['status'] === 'pending') {
                                                     $dateClass = 'text-yellow-600 dark:text-yellow-400';
                                                 }
                                             ?>
-                                                <div class="text-sm <?php echo $dateClass; ?>">
-                                                    <?php echo $dueDate->format('d/m/Y'); ?>
+                                                <div class="text-xs mt-1 <?php echo $dateClass; ?>">
+                                                    Vence: <?php echo $dueDate->format('d/m/Y'); ?>
                                                 </div>
-                                            <?php } else { ?>
-                                                <div class="text-sm text-slate-400">-</div>
                                             <?php } ?>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
@@ -789,10 +797,10 @@ include 'includes/admin_header.php';
                                                         title="Descargar PDF">
                                                     <span class="material-symbols-outlined text-lg">picture_as_pdf</span>
                                                 </button>
-                                                <?php if ($pay['status'] === 'pending' || $pay['status'] === 'overdue'): ?>
-                                                    <button onclick="openMarkAsPaidModal(<?php echo $pay['id']; ?>, '<?php echo htmlspecialchars($pay['invoice_number']); ?>', <?php echo $pay['amount']; ?>)" 
-                                                            class="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300" title="Marcar como Pagado">
-                                                        <span class="material-symbols-outlined text-lg">check_circle</span>
+                                                <?php if (in_array($pay['status'], ['pending', 'overdue', 'partially_paid'])): ?>
+                                                    <button onclick="openAddReceiptModal(<?php echo $pay['id']; ?>, '<?php echo htmlspecialchars($pay['invoice_number']); ?>', <?php echo $pay['pending_amount'] ?? $pay['amount']; ?>, <?php echo $pay['service_id'] ?? 'null'; ?>)" 
+                                                            class="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300" title="Registrar Abono">
+                                                        <span class="material-symbols-outlined text-lg">payments</span>
                                                     </button>
                                                 <?php endif; ?>
                                                 <button onclick="openEditPaymentModal(<?php echo $pay['id']; ?>)" 
@@ -1034,43 +1042,101 @@ include 'includes/admin_header.php';
     </div>
 </div>
 
-<!-- Mark as Paid Modal -->
-<div id="markAsPaidModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+<!-- Add Receipt Modal -->
+<div id="addReceiptModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
     <div class="bg-white dark:bg-card-dark rounded-xl shadow-xl max-w-md w-full">
         <div class="p-6 border-b border-slate-200 dark:border-slate-700">
-            <h3 class="text-xl font-bold text-slate-900 dark:text-white">Marcar como Pagado</h3>
+            <h3 class="text-xl font-bold text-slate-900 dark:text-white">Registrar Abono</h3>
         </div>
         
-        <form method="POST" action="admin_payments.php" class="p-6">
-            <input type="hidden" name="action" value="mark_as_paid">
-            <input type="hidden" name="payment_id" id="markPaidPaymentId" value="">
+        <form method="POST" action="admin_payments.php" class="p-6 space-y-4">
+            <input type="hidden" name="action" value="add_receipt">
+            <input type="hidden" name="payment_id" id="receiptPaymentId" value="">
             
-            <div class="mb-4">
-                <p class="text-sm text-slate-600 dark:text-slate-400 mb-2">
-                    Factura: <span class="font-medium text-slate-900 dark:text-white" id="markPaidInvoiceNumber"></span>
+            <div class="mb-2">
+                <p class="text-sm text-slate-600 dark:text-slate-400 mb-1">
+                    Factura: <span class="font-medium text-slate-900 dark:text-white" id="receiptInvoiceNumber"></span>
                 </p>
-                <p class="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                    Monto: <span class="font-medium text-slate-900 dark:text-white" id="markPaidAmount"></span>
+                <p class="text-sm text-slate-600 dark:text-slate-400">
+                    Pendiente Actual: <span class="font-medium text-orange-600" id="receiptPendingAmount"></span>
                 </p>
             </div>
             
-            <div class="mb-6">
+            <div>
+                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    Monto a Abonar *
+                </label>
+                <input type="number" name="receipt_amount" id="receiptAmountInput" step="0.01" required
+                       oninput="updateReceiptSplitTotal()"
+                       class="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-card-dark text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary">
+            </div>
+
+            <!-- Desglose Ads (Solo si aplica) -->
+            <div id="receiptAdsSplitContainer" class="hidden bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="material-symbols-outlined text-purple-600 dark:text-purple-400">campaign</span>
+                    <h4 class="font-semibold text-purple-900 dark:text-purple-200">Desglose de este abono</h4>
+                </div>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-purple-700 dark:text-purple-300 mb-1">Honorarios</label>
+                        <input type="number" name="fee_amount" id="receiptFeeAmount" step="0.01" min="0" oninput="updateReceiptSplitTotal()"
+                               class="w-full px-3 py-1.5 border border-purple-300 dark:border-purple-600 rounded-lg bg-white dark:bg-card-dark text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-purple-700 dark:text-purple-300 mb-1">Inversión (Ads)</label>
+                        <input type="number" name="ads_amount" id="receiptAdsAmount" step="0.01" min="0" oninput="updateReceiptSplitTotal()"
+                               class="w-full px-3 py-1.5 border border-purple-300 dark:border-purple-600 rounded-lg bg-white dark:bg-card-dark text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    </div>
+                </div>
+                <div class="mt-2 text-sm text-purple-700 dark:text-purple-300 font-medium flex justify-between">
+                    <span>Total desglose:</span>
+                    <span id="receiptSplitTotal">$0.00</span>
+                </div>
+                <div id="receiptSplitWarning" class="hidden mt-1 text-xs text-red-600 dark:text-red-400">
+                    El desglose no coincide con el monto
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    Método de Pago
+                </label>
+                <select name="payment_method" 
+                        class="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-card-dark text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary">
+                    <option value="transfer">Transferencia</option>
+                    <option value="cash">Efectivo</option>
+                    <option value="card">Tarjeta</option>
+                    <option value="check">Cheque</option>
+                    <option value="other">Otro</option>
+                </select>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    Fecha de Recepción
+                </label>
+                <input type="date" name="payment_date" required value="<?php echo date('Y-m-d'); ?>"
+                       class="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-card-dark text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary">
+            </div>
+
+            <div>
                 <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                     Número de Referencia (Opcional)
                 </label>
                 <input type="text" name="reference_number" 
-                       placeholder="Número de transferencia, cheque, etc."
+                       placeholder="Transferencia, cheque..."
                        class="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-card-dark text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary">
             </div>
             
-            <div class="flex justify-end gap-3">
-                <button type="button" onclick="closeMarkAsPaidModal()" 
+            <div class="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+                <button type="button" onclick="closeAddReceiptModal()" 
                         class="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition">
                     Cancelar
                 </button>
                 <button type="submit" 
-                        class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
-                    Marcar como Pagado
+                        class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium">
+                    Registrar
                 </button>
             </div>
         </form>
@@ -1097,15 +1163,72 @@ function closePaymentModal() {
     document.getElementById('paymentModal').classList.add('hidden');
 }
 
-function openMarkAsPaidModal(paymentId, invoiceNumber, amount) {
-    document.getElementById('markPaidPaymentId').value = paymentId;
-    document.getElementById('markPaidInvoiceNumber').textContent = invoiceNumber;
-    document.getElementById('markPaidAmount').textContent = '$' + parseFloat(amount).toFixed(2);
-    document.getElementById('markAsPaidModal').classList.remove('hidden');
+function openAddReceiptModal(paymentId, invoiceNumber, pendingAmount, serviceId) {
+    document.getElementById('receiptPaymentId').value = paymentId;
+    document.getElementById('receiptInvoiceNumber').textContent = invoiceNumber;
+    document.getElementById('receiptPendingAmount').textContent = '$' + parseFloat(pendingAmount).toFixed(2);
+    document.getElementById('receiptAmountInput').value = parseFloat(pendingAmount).toFixed(2);
+    document.getElementById('receiptAmountInput').max = pendingAmount;
+    
+    // Check if this service is Ads service to show split
+    const splitContainer = document.getElementById('receiptAdsSplitContainer');
+    const feeInput = document.getElementById('receiptFeeAmount');
+    const adsInput = document.getElementById('receiptAdsAmount');
+    
+    splitContainer.classList.add('hidden');
+    feeInput.removeAttribute('required');
+    adsInput.removeAttribute('required');
+    feeInput.value = '';
+    adsInput.value = '';
+    
+    if (serviceId) {
+        // Find option in select to check data-is-ads, or fetch it
+        // We'll use a fetch to be safe if not already loaded
+        fetch('?ajax=get_services&client_id=0') // We just need any service call, wait, no, client_id is required
+        // Simpler: assume we pass a flag or just check the main select if populated
+        const serviceSelect = document.getElementById('filterServiceId');
+        let isAds = false;
+        
+        // Alternatively, since we just want to know if it's ads, we can make an ajax call specifically for that
+        // Or check existing <option> in filterServiceId. But since we didn't populate data-is-ads in filterServiceId...
+        // Let's just always show the split for now if serviceId exists, but make it optional, or better, fetch it:
+        
+        fetch('api_get_service_info.php?id=' + serviceId)
+            .then(res => res.json())
+            .then(data => {
+                if (data && (data.is_ads_service == 1 || data.is_ads_service === true)) {
+                    splitContainer.classList.remove('hidden');
+                    feeInput.setAttribute('required', 'required');
+                    adsInput.setAttribute('required', 'required');
+                    updateReceiptSplitTotal();
+                }
+            }).catch(e => {
+                // If api doesn't exist, we fallback to showing it, but not required
+                splitContainer.classList.remove('hidden');
+            });
+    }
+
+    document.getElementById('addReceiptModal').classList.remove('hidden');
 }
 
-function closeMarkAsPaidModal() {
-    document.getElementById('markAsPaidModal').classList.add('hidden');
+function updateReceiptSplitTotal() {
+    const feeAmount = parseFloat(document.getElementById('receiptFeeAmount')?.value || 0);
+    const adsAmount = parseFloat(document.getElementById('receiptAdsAmount')?.value || 0);
+    const totalAmount = parseFloat(document.getElementById('receiptAmountInput')?.value || 0);
+    const splitTotal = feeAmount + adsAmount;
+    
+    document.getElementById('receiptSplitTotal').textContent = '$' + splitTotal.toFixed(2);
+    
+    const warningEl = document.getElementById('receiptSplitWarning');
+    if (Math.abs(splitTotal - totalAmount) > 0.01 && totalAmount > 0) {
+        warningEl.classList.remove('hidden');
+    } else {
+        warningEl.classList.add('hidden');
+    }
+}
+
+function closeAddReceiptModal() {
+    document.getElementById('addReceiptModal').classList.add('hidden');
 }
 
 function togglePaidAt() {
@@ -1303,9 +1426,9 @@ document.getElementById('paymentModal')?.addEventListener('click', function(e) {
     }
 });
 
-document.getElementById('markAsPaidModal')?.addEventListener('click', function(e) {
+document.getElementById('addReceiptModal')?.addEventListener('click', function(e) {
     if (e.target === this) {
-        closeMarkAsPaidModal();
+        closeAddReceiptModal();
     }
 });
 

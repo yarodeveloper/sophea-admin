@@ -3462,7 +3462,7 @@ function displayServicePayments(payments, summary) {
                 <thead class="bg-slate-50 dark:bg-slate-800">
                     <tr>
                         <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Fecha</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Monto</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Montos</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Método</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Referencia</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Estado</th>
@@ -3484,6 +3484,9 @@ function displayServicePayments(payments, summary) {
         if (payment.status === 'paid') {
             statusClass = 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
             statusText = 'Pagado';
+        } else if (payment.status === 'partially_paid') {
+            statusClass = 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
+            statusText = 'Pago Parcial';
         } else if (payment.status === 'overdue') {
             statusClass = 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
             statusText = 'Vencido';
@@ -3513,8 +3516,16 @@ function displayServicePayments(payments, summary) {
                 <td class="px-4 py-3 text-sm text-slate-900 dark:text-white">
                     ${displayDate.toLocaleDateString('es-MX')}
                 </td>
-                <td class="px-4 py-3 text-sm font-semibold text-slate-900 dark:text-white">
-                    $${parseFloat(payment.amount).toLocaleString('es-MX', {minimumFractionDigits: 2})} ${payment.currency || 'MXN'}
+                <td class="px-4 py-3 whitespace-nowrap">
+                    <div class="text-sm font-bold text-slate-900 dark:text-white">
+                        $${parseFloat(payment.amount).toLocaleString('es-MX', {minimumFractionDigits: 2})} ${payment.currency || 'MXN'}
+                    </div>
+                    <div class="text-xs text-green-600 dark:text-green-400 font-medium mt-1">
+                        Abonado: $${parseFloat(payment.paid_amount || 0).toLocaleString('es-MX', {minimumFractionDigits: 2})}
+                    </div>
+                    <div class="text-xs text-orange-600 dark:text-orange-400 font-medium">
+                        Pendiente: $${parseFloat(payment.pending_amount !== undefined ? payment.pending_amount : payment.amount).toLocaleString('es-MX', {minimumFractionDigits: 2})}
+                    </div>
                 </td>
                 <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">
                     ${getPaymentMethodLabel(payment.payment_method)}
