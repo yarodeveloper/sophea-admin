@@ -146,6 +146,7 @@ try {
 }
 
 // Include layout header
+include 'includes/admin_header.php';
 ?>
 <?php include 'includes/layout_start.php'; ?>
         
