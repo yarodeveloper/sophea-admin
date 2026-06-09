@@ -181,6 +181,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'email_marketing' => 'Email Marketing',
                         'consultoria_legal' => 'Consultoría Legal',
                         'auditoria_datos' => 'Auditoría de Datos',
+                        'hosting_dominio' => 'Hosting / Dominio',
                         'otro' => 'Otro'
                     ];
                     
@@ -1165,7 +1166,7 @@ let itemCounter = 0;
 const serviceTypes = [
     'redes_sociales', 'community_manager', 'diseno_web', 'ads', 
     'branding', 'chatbot', 'seo', 'content_marketing', 
-    'email_marketing', 'consultoria_legal', 'auditoria_datos', 'otro'
+    'email_marketing', 'consultoria_legal', 'auditoria_datos', 'hosting_dominio', 'otro'
 ];
 const serviceTypeLabels = {
     'redes_sociales': 'Redes Sociales',
@@ -1179,6 +1180,7 @@ const serviceTypeLabels = {
     'email_marketing': 'Email Marketing',
     'consultoria_legal': 'Consultoría Legal',
     'auditoria_datos': 'Auditoría de Datos',
+    'hosting_dominio': 'Hosting / Dominio',
     'otro': 'Otro'
 };
 

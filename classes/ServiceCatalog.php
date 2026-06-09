@@ -198,8 +198,8 @@ class ServiceCatalog {
             'email_marketing' => 'Email Marketing',
             'consultoria_legal' => 'Consultoría Legal',
             'auditoria_datos' => 'Auditoría de Datos',
+            'hosting_dominio' => 'Hosting / Dominio',
             'otro' => 'Otro'
         ];
     }
 }
-

@@ -408,7 +408,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                 'redes_sociales' => 'Redes Sociales',
                                 'community_manager' => 'Community Manager',
                                 'diseno_web' => 'Diseño Web',
-                                'ads' => 'Publicidad',
+                                'ads' => 'Publicidad Digital',
                                 'branding' => 'Branding',
                                 'chatbot' => 'Chatbot',
                                 'seo' => 'SEO',
@@ -416,6 +416,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                 'email_marketing' => 'Email Marketing',
                                 'consultoria_legal' => 'Consultoría Legal',
                                 'auditoria_datos' => 'Auditoría de Datos',
+                                'hosting_dominio' => 'Hosting / Dominio',
                                 'otro' => 'Otro'
                             ];
                             
@@ -2844,6 +2845,7 @@ include 'includes/admin_header.php';
                         <option value="email_marketing">Email Marketing</option>
                         <option value="consultoria_legal">Consultoría Legal</option>
                         <option value="auditoria_datos">Auditoría de Datos</option>
+                        <option value="hosting_dominio">Hosting / Dominio</option>
                         <option value="otro">Otro</option>
                     </select>
                 </div>

@@ -193,6 +193,11 @@ class Invoice {
             
             // Group payments by service
             $paymentsByService = [];
+            // Initialize with all services to ensure they appear in the invoice
+            foreach ($services as $svc) {
+                $paymentsByService[$svc['id']] = [];
+            }
+            
             foreach ($allPayments as $pay) {
                 if (in_array($pay['status'], ['paid', 'pending', 'overdue'])) {
                     $serviceId = $pay['service_id'] ?? null;
@@ -286,85 +291,102 @@ class Invoice {
                 }
                 
                 // Add payment items for this service
-                foreach ($servicePayments as $pay) {
-                    // Use paid_at (date when payment was made) if available, otherwise payment_date
-                    $paymentDate = date('Y-m-d');
-                    if (!empty($pay['paid_at'])) {
-                        $paymentDate = date('Y-m-d', strtotime($pay['paid_at']));
-                    } elseif (!empty($pay['payment_date'])) {
-                        $paymentDate = $pay['payment_date'];
+                if (empty($servicePayments)) {
+                    // Si no hay pagos para este servicio, agregar un item genérico pendiente para que aparezca en el PDF
+                    if ($serviceMonthlyFee > 0) {
+                        $serviceItems[] = [
+                            'description'      => 'Cargo de Servicio — PENDIENTE',
+                            'date'             => date('Y-m-d'),
+                            'quantity'         => 1,
+                            'price'            => $serviceMonthlyFee,
+                            'total'            => $serviceMonthlyFee,
+                            'service_id'       => $serviceId,
+                            'is_service_header'=> false,
+                            'status_class'     => 'pending',
+                            'row_type'         => 'fee'
+                        ];
                     }
-                    
-                    $statusLabel = '';
-                    $statusClass = '';
-                    if ($pay['status'] === 'pending') {
-                        $statusLabel = ' — PENDIENTE';
-                        $statusClass = 'pending';
-                    } elseif ($pay['status'] === 'overdue') {
-                        $statusLabel = ' — VENCIDO';
-                        $statusClass = 'overdue';
-                    } elseif ($pay['status'] === 'paid') {
+                } else {
+                    foreach ($servicePayments as $pay) {
+                        $paymentDate = '';
+                        if (!empty($pay['paid_at'])) {
+                            $paymentDate = date('Y-m-d', strtotime($pay['paid_at']));
+                        } elseif (!empty($pay['payment_date'])) {
+                            $paymentDate = date('Y-m-d', strtotime($pay['payment_date']));
+                        }
+                        
+                        // Determine label based on status
                         $statusLabel = '';
-                        $statusClass = 'paid';
-                    }
-                    
-                    $feeAmount  = floatval($pay['fee_amount']  ?? 0);
-                    $adsAmount  = floatval($pay['ads_amount']  ?? 0);
-                    $totalAmount = floatval($pay['amount'] ?? 0);
-                    
-                    // If we have explicit fee/ads split, show as two separate rows
-                    if ($feeAmount > 0 && $adsAmount > 0) {
-                        // Row 1: Honorario / Feed (service fee)
-                        $serviceItems[] = [
-                            'description'      => 'Honorario de Servicio / Feed' . $statusLabel,
-                            'date'             => $paymentDate,
-                            'quantity'         => 1,
-                            'price'            => $feeAmount,
-                            'total'            => $feeAmount,
-                            'service_id'       => $pay['service_id'],
-                            'is_service_header'=> false,
-                            'status_class'     => $statusClass,
-                            'row_type'         => 'fee'
-                        ];
-                        // Row 2: Inversión ADS (platform investment)
-                        $adsStatusLabel = $pay['status'] === 'paid' ? '' : $statusLabel;
-                        $serviceItems[] = [
-                            'description'      => 'Inversión en Plataforma ADS' . $adsStatusLabel,
-                            'date'             => $paymentDate,
-                            'quantity'         => 1,
-                            'price'            => $adsAmount,
-                            'total'            => $adsAmount,
-                            'service_id'       => $pay['service_id'],
-                            'is_service_header'=> false,
-                            'status_class'     => $statusClass,
-                            'row_type'         => 'ads_investment'
-                        ];
-                    } elseif ($feeAmount > 0 && $adsAmount == 0) {
-                        // Only fee (no investment split)
-                        $serviceItems[] = [
-                            'description'      => 'Honorario de Servicio' . $statusLabel,
-                            'date'             => $paymentDate,
-                            'quantity'         => 1,
-                            'price'            => $feeAmount,
-                            'total'            => $feeAmount,
-                            'service_id'       => $pay['service_id'],
-                            'is_service_header'=> false,
-                            'status_class'     => $statusClass,
-                            'row_type'         => 'fee'
-                        ];
-                    } else {
-                        // Generic payment row (no split data — old payments or non-ADS)
-                        $serviceItems[] = [
-                            'description'      => 'Pago de Servicio' . $statusLabel,
-                            'date'             => $paymentDate,
-                            'quantity'         => 1,
-                            'price'            => $totalAmount,
-                            'total'            => $totalAmount,
-                            'service_id'       => $pay['service_id'],
-                            'is_service_header'=> false,
-                            'status_class'     => $statusClass,
-                            'row_type'         => 'generic'
-                        ];
+                        $statusClass = '';
+                        if ($pay['status'] === 'pending') {
+                            $statusLabel = ' — PENDIENTE';
+                            $statusClass = 'pending';
+                        } elseif ($pay['status'] === 'overdue') {
+                            $statusLabel = ' — VENCIDO';
+                            $statusClass = 'overdue';
+                        } elseif ($pay['status'] === 'paid') {
+                            $statusLabel = '';
+                            $statusClass = 'paid';
+                        }
+                        
+                        $feeAmount  = floatval($pay['fee_amount']  ?? 0);
+                        $adsAmount  = floatval($pay['ads_amount']  ?? 0);
+                        $totalAmount = floatval($pay['amount'] ?? 0);
+                        
+                        // If we have explicit fee/ads split, show as two separate rows
+                        if ($feeAmount > 0 && $adsAmount > 0) {
+                            // Row 1: Honorario / Feed (service fee)
+                            $serviceItems[] = [
+                                'description'      => 'Honorario de Servicio / Feed' . $statusLabel,
+                                'date'             => $paymentDate,
+                                'quantity'         => 1,
+                                'price'            => $feeAmount,
+                                'total'            => $feeAmount,
+                                'service_id'       => $pay['service_id'],
+                                'is_service_header'=> false,
+                                'status_class'     => $statusClass,
+                                'row_type'         => 'fee'
+                            ];
+                            // Row 2: Inversión ADS (platform investment)
+                            $adsStatusLabel = $pay['status'] === 'paid' ? '' : $statusLabel;
+                            $serviceItems[] = [
+                                'description'      => 'Inversión en Plataforma ADS' . $adsStatusLabel,
+                                'date'             => $paymentDate,
+                                'quantity'         => 1,
+                                'price'            => $adsAmount,
+                                'total'            => $adsAmount,
+                                'service_id'       => $pay['service_id'],
+                                'is_service_header'=> false,
+                                'status_class'     => $statusClass,
+                                'row_type'         => 'ads_investment'
+                            ];
+                        } elseif ($feeAmount > 0 && $adsAmount == 0) {
+                            // Only fee (no investment split)
+                            $serviceItems[] = [
+                                'description'      => 'Honorario de Servicio' . $statusLabel,
+                                'date'             => $paymentDate,
+                                'quantity'         => 1,
+                                'price'            => $feeAmount,
+                                'total'            => $feeAmount,
+                                'service_id'       => $pay['service_id'],
+                                'is_service_header'=> false,
+                                'status_class'     => $statusClass,
+                                'row_type'         => 'fee'
+                            ];
+                        } else {
+                            // Generic payment row (no split data — old payments or non-ADS)
+                            $serviceItems[] = [
+                                'description'      => 'Pago de Servicio' . $statusLabel,
+                                'date'             => $paymentDate,
+                                'quantity'         => 1,
+                                'price'            => $totalAmount,
+                                'total'            => $totalAmount,
+                                'service_id'       => $pay['service_id'],
+                                'is_service_header'=> false,
+                                'status_class'     => $statusClass,
+                                'row_type'         => 'generic'
+                            ];
+                        }
                     }
                 }
             }
