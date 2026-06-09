@@ -254,20 +254,9 @@ $billingCycleLabels = $expense ? $expense->getBillingCycleLabels() : [];
 include 'includes/admin_header.php';
 ?>
 
-<!-- Sidebar (outside flex container for mobile, inside for desktop) -->
-<?php include 'includes/admin_sidebar.php'; ?>
-
-<div class="relative flex h-screen w-full overflow-hidden">
-    <!-- Spacer for sidebar on desktop -->
-    <div class="hidden md:block w-64 flex-shrink-0"></div>
-    
-    <!-- Main Content -->
-    <main class="flex-1 overflow-y-auto custom-scrollbar bg-background-light dark:bg-background-dark p-6 lg:p-10 md:ml-0">
+<?php include 'includes/layout_start.php'; ?>
         <div class="mx-auto max-w-[1400px]">
-            <!-- Mobile Menu Button -->
-            <button id="sidebar-toggle-btn" class="md:hidden fixed top-4 left-4 z-30 p-3 bg-white dark:bg-card-dark rounded-lg shadow-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" aria-label="Abrir menú">
-                <span class="material-symbols-outlined text-2xl">menu</span>
-            </button>
+
             
             <!-- Page Heading -->
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 mt-16 md:mt-0">
@@ -563,8 +552,7 @@ include 'includes/admin_header.php';
                 <?php endif; ?>
             </div>
         </div>
-    </main>
-</div>
+
 
 <!-- New/Edit Expense Modal -->
 <div id="expenseModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
@@ -1030,5 +1018,5 @@ function closeDeleteModal() {
 <?php endif; ?>
 </script>
 
-<?php include 'includes/admin_footer.php'; ?>
+<?php include 'includes/layout_end.php'; ?>
 

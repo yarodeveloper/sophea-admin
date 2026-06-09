@@ -114,11 +114,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'get_services' && isset($_GET['cli
 include 'includes/admin_header.php';
 ?>
 
-<div class="relative flex h-screen w-full overflow-hidden">
-    <?php include 'includes/admin_sidebar.php'; ?>
-    
-    <!-- Main Content -->
-    <main class="flex-1 overflow-y-auto custom-scrollbar bg-background-light dark:bg-background-dark p-6 lg:p-10">
+<?php include 'includes/layout_start.php'; ?>
         <div class="mx-auto max-w-[1400px]">
             <!-- Page Heading -->
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
@@ -377,8 +373,7 @@ include 'includes/admin_header.php';
                 <?php endif; ?>
             </div>
         </div>
-    </main>
-</div>
+
 
 <script>
 function loadClientServices(clientId) {
@@ -402,5 +397,5 @@ function loadClientServices(clientId) {
 }
 </script>
 
-<?php include 'includes/admin_footer.php'; ?>
+<?php include 'includes/layout_end.php'; ?>
 
