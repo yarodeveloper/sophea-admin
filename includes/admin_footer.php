@@ -5,8 +5,6 @@
  * Footer component for admin panel
  */
 ?>
-    </div>
-</div>
 
 <!-- Scripts -->
 <!-- Chart.js for WhatsApp Marketing charts -->

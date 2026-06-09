@@ -1205,9 +1205,7 @@ if ($client) {
 include 'includes/admin_header.php';
 ?>
 
-<!-- Sidebar -->
-<?php include 'includes/admin_sidebar.php'; ?>
-
+<!-- Sidebar removed for layout -->
 <style>
     /* Custom Dropdown for Invoice Actions */
     .invoice-dropdown {
@@ -1271,17 +1269,7 @@ include 'includes/admin_header.php';
     }
 </style>
 
-<div class="relative flex h-screen w-full overflow-hidden">
-    <!-- Spacer for sidebar on desktop -->
-    <div class="hidden md:block w-64 flex-shrink-0"></div>
-
-    <!-- Main Content -->
-    <main class="flex-1 overflow-y-auto custom-scrollbar bg-background-light dark:bg-background-dark p-6 lg:p-10">
-        <!-- Mobile Menu Button -->
-        <button id="sidebar-toggle-btn" class="md:hidden fixed top-4 left-4 z-30 p-3 bg-white dark:bg-card-dark rounded-lg shadow-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" aria-label="Abrir menú">
-            <span class="material-symbols-outlined text-2xl">menu</span>
-        </button>
-        <div class="mx-auto max-w-[1400px]">
+<?php include 'includes/layout_start.php'; ?>
             <!-- Back Button -->
             <div class="mb-4">
                 <a href="admin_clients.php" 
@@ -2482,9 +2470,7 @@ include 'includes/admin_header.php';
                     <?php endif; ?>
                 </div>
             </div>
-        </div>
-    </main>
-</div>
+
 
 <!-- Client Edit Modal -->
 <div id="clientEditModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
@@ -4338,7 +4324,6 @@ document.getElementById('whatsapp-modal')?.addEventListener('click', function(e)
     </div>
 </div>
 
-<?php include 'includes/admin_footer.php'; ?>
 
 <script>
 
@@ -5227,7 +5212,7 @@ document.getElementById('convertQuoteModal')?.addEventListener('click', function
 
 </script>
 
-<?php include 'includes/admin_footer.php'; ?>
+<?php include 'includes/layout_end.php'; ?>
 
 
 
