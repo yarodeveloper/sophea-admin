@@ -15,7 +15,7 @@ require_once 'classes/ServiceCatalog.php';
 $activeTab = $_GET['tab'] ?? 'whatsapp_config';
 
 // Ensure it's valid
-$validTabs = ['whatsapp_config', 'tests', 'services_catalog'];
+$validTabs = ['whatsapp_config', 'tests', 'services_catalog', 'service_types'];
 $activeTab = isset($_GET['tab']) && in_array($_GET['tab'], $validTabs) ? $_GET['tab'] : 'whatsapp_config';
 
 // Get messages from URL
@@ -73,6 +73,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
+// Handle Service Types form submissions
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'service_types') {
+    require_once 'classes/Database.php';
+    $db = Database::getInstance()->getConnection();
+    $redirectUrl = 'admin_tools.php?tab=service_types';
+    
+    if (isset($_POST['type_action'])) {
+        $typeAction = $_POST['type_action'];
+        
+        try {
+            if ($typeAction === 'create' || $typeAction === 'update') {
+                $name = trim($_POST['name'] ?? '');
+                $slug = trim($_POST['slug'] ?? '');
+                // Generate slug if empty
+                if (empty($slug)) {
+                    $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '_', $name)));
+                }
+                
+                $is_active = isset($_POST['is_active']) ? 1 : 0;
+                $display_order = intval($_POST['display_order'] ?? 0);
+                
+                if ($typeAction === 'create') {
+                    $stmt = $db->prepare("INSERT INTO service_types (slug, name, is_active, display_order) VALUES (?, ?, ?, ?)");
+                    $stmt->execute([$slug, $name, $is_active, $display_order]);
+                } else {
+                    $id = intval($_POST['id'] ?? 0);
+                    $stmt = $db->prepare("UPDATE service_types SET slug = ?, name = ?, is_active = ?, display_order = ? WHERE id = ?");
+                    $stmt->execute([$slug, $name, $is_active, $display_order, $id]);
+                }
+                header('Location: ' . $redirectUrl . '&save_success=1');
+                exit;
+                
+            } elseif ($typeAction === 'delete') {
+                $id = intval($_POST['id'] ?? 0);
+                // Simple validation to prevent deletion if used could be added here
+                $stmt = $db->prepare("DELETE FROM service_types WHERE id = ?");
+                $stmt->execute([$id]);
+                header('Location: ' . $redirectUrl . '&save_success=1');
+                exit;
+            }
+        } catch (Exception $e) {
+            header('Location: ' . $redirectUrl . '&save_error=' . urlencode('Error en la base de datos: ' . $e->getMessage()));
+            exit;
+        }
+    }
+}
+
 // Include header with sidebar layout
 include 'includes/admin_header.php';
 ?>
@@ -95,6 +142,8 @@ include 'includes/admin_header.php';
                         <?php 
                         if ($activeTab === 'services_catalog') {
                             echo 'Gestiona el catálogo de servicios con precios sugeridos';
+                        } elseif ($activeTab === 'service_types') {
+                            echo 'Gestiona los tipos de servicio disponibles en el sistema';
                         } elseif ($activeTab === 'tests') {
                             echo 'Herramientas de diagnóstico y pruebas';
                         } else {
@@ -123,6 +172,11 @@ include 'includes/admin_header.php';
                            class="<?php echo $activeTab === 'services_catalog' ? 'border-primary text-primary bg-primary/5' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'; ?> flex-1 whitespace-nowrap border-b-2 py-4 px-6 text-center text-sm font-medium transition-colors">
                             <span class="material-symbols-outlined align-middle mr-2" style="font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;">list</span>
                             Catálogo de Servicios
+                        </a>
+                        <a href="admin_tools.php?tab=service_types" 
+                           class="<?php echo $activeTab === 'service_types' ? 'border-primary text-primary bg-primary/5' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'; ?> flex-1 whitespace-nowrap border-b-2 py-4 px-6 text-center text-sm font-medium transition-colors">
+                            <span class="material-symbols-outlined align-middle mr-2" style="font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;">category</span>
+                            Tipos de Servicio
                         </a>
                     </nav>
                 </div>
@@ -166,6 +220,10 @@ include 'includes/admin_header.php';
                 <?php elseif ($activeTab === 'services_catalog'): ?>
                     <!-- Services Catalog Tab Content -->
                     <?php include 'includes/admin_tools_services_catalog_tab.php'; ?>
+                    
+                <?php elseif ($activeTab === 'service_types'): ?>
+                    <!-- Service Types Tab Content -->
+                    <?php include 'includes/admin_tools_service_types_tab.php'; ?>
                     
                 <?php endif; ?>
             </div>

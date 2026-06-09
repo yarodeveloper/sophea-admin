@@ -146,6 +146,7 @@ try {
 }
 
 // Include layout header
+?>
 <?php include 'includes/layout_start.php'; ?>
         
         <div class="mx-auto max-w-[1200px] flex flex-col gap-6 mt-16 md:mt-0">

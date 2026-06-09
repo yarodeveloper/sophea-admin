@@ -8,25 +8,48 @@
 
 class AppConstants {
     
+    private static $serviceTypesCache = null;
+
     /**
-     * Get all service types
-     * @return array Associative array of service types [key => Label]
+     * Get all service types from Database
+     * @return array Associative array of service types [slug => name]
      */
     public static function getServiceTypes() {
-        return [
-            'redes_sociales' => 'Manejo de Redes',
-            'desarrollo_web' => 'Desarrollo Web',
-            'branding' => 'Branding y Diseño',
-            'seo_sem' => 'SEO / SEM',
-            'campanas_ads' => 'Campañas Ads',
-            'fotografia_video' => 'Fotografía / Video',
-            'asesoria' => 'Asesoría / Consultoría',
-            'email_marketing' => 'Email Marketing',
-            'consultoria_legal' => 'Consultoría Legal/Médica',
-            'auditoria_datos' => 'Auditoría de Datos',
-            'hosting_dominio' => 'Hosting / Dominio',
-            'otro' => 'Otro'
-        ];
+        if (self::$serviceTypesCache !== null) {
+            return self::$serviceTypesCache;
+        }
+
+        try {
+            require_once __DIR__ . '/Database.php';
+            $db = Database::getInstance()->getConnection();
+            $stmt = $db->query("SELECT slug, name FROM service_types WHERE is_active = 1 ORDER BY display_order ASC, name ASC");
+            $types = [];
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $types[$row['slug']] = $row['name'];
+            }
+            
+            // Si la base de datos está vacía por alguna razón, usamos un fallback
+            if (empty($types)) {
+                $types = [
+                    'redes_sociales' => 'Manejo de Redes',
+                    'desarrollo_web' => 'Desarrollo Web',
+                    'branding' => 'Branding y Diseño',
+                    'seo_sem' => 'SEO / SEM',
+                    'campanas_ads' => 'Campañas Ads',
+                    'hosting_dominio' => 'Hosting / Dominio',
+                    'otro' => 'Otro'
+                ];
+            }
+            
+            self::$serviceTypesCache = $types;
+            return self::$serviceTypesCache;
+            
+        } catch (Exception $e) {
+            // Fallback seguro en caso de error de BD
+            return [
+                'otro' => 'Otro'
+            ];
+        }
     }
 
     /**
