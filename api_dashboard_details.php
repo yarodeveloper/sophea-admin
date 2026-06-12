@@ -27,7 +27,7 @@ try {
                 LEFT JOIN clients c ON p.client_id = c.id
                 LEFT JOIN services s ON p.service_id = s.id
                 WHERE p.status IN ('paid', 'partially_paid')
-                AND MONTH(p.paid_at) = :month AND YEAR(p.paid_at) = :year
+                AND MONTH(p.payment_date) = :month AND YEAR(p.payment_date) = :year
                 ORDER BY p.paid_at DESC";
         $stmt = $db->prepare($sql);
         $stmt->execute([':month' => $month, ':year' => $year]);

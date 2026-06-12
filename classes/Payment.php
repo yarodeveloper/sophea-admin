@@ -590,7 +590,7 @@ class Payment {
             }
             
             if ($month && $year) {
-                $sql .= " AND MONTH(paid_at) = :month AND YEAR(paid_at) = :year";
+                $sql .= " AND MONTH(payment_date) = :month AND YEAR(payment_date) = :year";
                 $params[':month'] = $month;
                 $params[':year'] = $year;
             }
