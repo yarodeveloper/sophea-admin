@@ -71,15 +71,12 @@ class Payment {
             $paymentNumber = $this->generatePaymentNumber();
             $invoiceNumber = $this->generateInvoiceNumber();
             
-            // Determine status based on payment_date
-            $status = 'pending';
+            // Determine status based on input or dates
+            $status = $data['status'] ?? 'pending';
             $paidAmount = 0;
             $pendingAmount = $data['amount'];
-            if (isset($data['paid_at']) && !empty($data['paid_at'])) {
-                $status = 'paid';
-                $paidAmount = $data['amount'];
-                $pendingAmount = 0;
-            } elseif (isset($data['due_date']) && !empty($data['due_date'])) {
+            
+            if ($status === 'pending' && isset($data['due_date']) && !empty($data['due_date'])) {
                 $dueDate = new DateTime($data['due_date']);
                 $today = new DateTime();
                 if ($dueDate < $today) {
