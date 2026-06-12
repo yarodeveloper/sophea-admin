@@ -21,12 +21,12 @@ $results = [];
 try {
     if ($type === 'paid_income') {
         // Ingresos cobrados en el mes (status = paid, paid_at en el mes/año)
-        $sql = "SELECT p.id, p.amount, p.status, p.paid_at as date, p.invoice_number, 
+        $sql = "SELECT p.id, p.paid_amount as amount, p.status, p.paid_at as date, p.invoice_number, 
                        c.company_name, c.id as client_id, s.service_name
                 FROM payments p
                 LEFT JOIN clients c ON p.client_id = c.id
                 LEFT JOIN services s ON p.service_id = s.id
-                WHERE p.status = 'paid'
+                WHERE p.status IN ('paid', 'partially_paid')
                 AND MONTH(p.paid_at) = :month AND YEAR(p.paid_at) = :year
                 ORDER BY p.paid_at DESC";
         $stmt = $db->prepare($sql);
