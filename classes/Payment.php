@@ -91,7 +91,7 @@ class Payment {
                     (client_id, service_id, quote_id, invoice_number, payment_number, amount, subtotal, paid_amount, pending_amount, currency,
                      payment_method, payment_date, due_date, status, paid_at, reference_number, notes, created_by) 
                     VALUES 
-                    (:client_id, :service_id, :quote_id, :invoice_number, :payment_number, :amount, :amount, :paid_amount, :pending_amount, :currency,
+                    (:client_id, :service_id, :quote_id, :invoice_number, :payment_number, :amount, :subtotal, :paid_amount, :pending_amount, :currency,
                      :payment_method, :payment_date, :due_date, :status, :paid_at, :reference_number, :notes, :created_by)";
             
             $stmt = $this->db->prepare($sql);
@@ -103,6 +103,7 @@ class Payment {
                 ':invoice_number' => $invoiceNumber,
                 ':payment_number' => $paymentNumber,
                 ':amount' => $data['amount'],
+                ':subtotal' => $data['amount'],
                 ':paid_amount' => $paidAmount,
                 ':pending_amount' => $pendingAmount,
                 ':currency' => $data['currency'] ?? 'MXN',
