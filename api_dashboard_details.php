@@ -44,34 +44,32 @@ try {
                 LEFT JOIN clients c ON p.client_id = c.id
                 LEFT JOIN services s ON p.service_id = s.id
                 WHERE p.status IN ('pending', 'overdue', 'partially_paid')
-                AND MONTH(p.payment_date) = :month AND YEAR(p.payment_date) = :year
+                AND (p.service_id IS NULL OR s.status NOT IN ('completed', 'cancelled', 'finished'))
                 ORDER BY p.payment_date ASC";
         $stmt = $db->prepare($sql);
-        $stmt->execute([':month' => $month, ':year' => $year]);
+        $stmt->execute();
         $realPayments = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         foreach ($realPayments as $rp) {
             $results[] = $rp;
         }
         
-        // 2. Saldos pendientes (Servicios activos donde tarifa > monto registrado en el mes)
+        // 2. Saldos pendientes (Servicios activos donde tarifa > pagado + pendiente)
         $sql2 = "SELECT s.id as service_id, s.service_name, s.monthly_fee,
                         c.company_name, c.id as client_id,
-                        COALESCE(SUM(p.amount), 0) as registered_amount
+                        COALESCE(SUM(p.paid_amount), 0) as total_paid,
+                        COALESCE(SUM(p.pending_amount), 0) as total_pending
                  FROM services s
                  LEFT JOIN clients c ON s.client_id = c.id
-                 LEFT JOIN payments p ON s.id = p.service_id 
-                                      AND MONTH(p.payment_date) = :month 
-                                      AND YEAR(p.payment_date) = :year
-                                      AND p.status != 'cancelled'
+                 LEFT JOIN payments p ON s.id = p.service_id AND p.status != 'cancelled'
                  WHERE s.status NOT IN ('completed', 'cancelled', 'finished')
                  GROUP BY s.id, s.service_name, s.monthly_fee, c.company_name, c.id";
         $stmt2 = $db->prepare($sql2);
-        $stmt2->execute([':month' => $month, ':year' => $year]);
+        $stmt2->execute();
         $services = $stmt2->fetchAll(PDO::FETCH_ASSOC);
         
         foreach ($services as $svc) {
-            $pendingBalance = floatval($svc['monthly_fee']) - floatval($svc['registered_amount']);
+            $pendingBalance = floatval($svc['monthly_fee']) - floatval($svc['total_paid']) - floatval($svc['total_pending']);
             if ($pendingBalance > 0) {
                 $results[] = [
                     'id' => null,
