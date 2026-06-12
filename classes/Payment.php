@@ -140,9 +140,12 @@ class Payment {
             
         } catch (PDOException $e) {
             error_log("Error creating payment: " . $e->getMessage());
+            $this->lastError = $e->getMessage();
             return false;
         }
     }
+    
+    public $lastError = '';
     
     /**
      * Update a payment

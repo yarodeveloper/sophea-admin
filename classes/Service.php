@@ -135,9 +135,12 @@ class Service {
             
         } catch (PDOException $e) {
             error_log("Error updating service: " . $e->getMessage());
+            $this->lastError = $e->getMessage();
             return false;
         }
     }
+    
+    public $lastError = '';
     
     /**
      * Get service by ID

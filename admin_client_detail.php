@@ -614,7 +614,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 header('Location: admin_client_detail.php?id=' . $clientId . '&message=success&msg=Pago registrado exitosamente');
                 exit;
             } else {
-                $message = 'Error al registrar el pago';
+                $message = 'Error al registrar el pago: ' . $payment->lastError;
                 $messageType = 'error';
             }
         }
@@ -678,7 +678,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 header('Location: admin_client_detail.php?id=' . $clientId . '&message=success&msg=Servicio actualizado exitosamente');
                 exit;
             } else {
-                $message = 'Error al actualizar el servicio';
+                $message = 'Error al actualizar el servicio: ' . $service->lastError;
                 $messageType = 'error';
             }
         }
