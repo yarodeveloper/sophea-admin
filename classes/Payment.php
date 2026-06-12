@@ -623,33 +623,38 @@ class Payment {
             if (!$year) $year = date('Y');
             if (!$month) $month = date('m');
             
-            // Pagos pendientes sin servicio
+            // 1. Explicit pending amounts in this month
             $sql1 = "SELECT COALESCE(SUM(pending_amount), 0) as total 
                      FROM payments 
                      WHERE status IN ('pending', 'overdue', 'partially_paid') 
-                     AND service_id IS NULL";
+                     AND MONTH(payment_date) = :month AND YEAR(payment_date) = :year";
             $stmt1 = $this->db->prepare($sql1);
-            $stmt1->execute();
-            $noServicePending = floatval($stmt1->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
+            $stmt1->execute([':month' => $month, ':year' => $year]);
+            $explicitPending = floatval($stmt1->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
             
-            // Para cada servicio activo: Max(Pagos Pendientes, Tarifa - Pagos Recibidos)
+            // 2. Unregistered expected income from active services for this month
             $sql2 = "SELECT s.monthly_fee,
-                            COALESCE(SUM(p.paid_amount), 0) as total_paid,
-                            COALESCE(SUM(p.pending_amount), 0) as total_pending
+                            COALESCE(SUM(p.amount), 0) as registered_amount
                      FROM services s
-                     LEFT JOIN payments p ON s.id = p.service_id
+                     LEFT JOIN payments p ON s.id = p.service_id 
+                                          AND MONTH(p.payment_date) = :month 
+                                          AND YEAR(p.payment_date) = :year
+                                          AND p.status != 'cancelled'
                      WHERE s.status NOT IN ('completed', 'cancelled', 'finished')
                      GROUP BY s.id, s.monthly_fee";
             $stmt2 = $this->db->prepare($sql2);
-            $stmt2->execute();
+            $stmt2->execute([':month' => $month, ':year' => $year]);
             $services = $stmt2->fetchAll(PDO::FETCH_ASSOC);
             
-            $servicesPending = 0;
+            $unregisteredPending = 0;
             foreach ($services as $svc) {
-                $servicesPending += max(floatval($svc['total_pending']), floatval($svc['monthly_fee']) - floatval($svc['total_paid']));
+                $missing = floatval($svc['monthly_fee']) - floatval($svc['registered_amount']);
+                if ($missing > 0) {
+                    $unregisteredPending += $missing;
+                }
             }
             
-            return $noServicePending + $servicesPending;
+            return $explicitPending + $unregisteredPending;
             
         } catch (PDOException $e) {
             error_log("Error calculating Accounts Receivable: " . $e->getMessage());
